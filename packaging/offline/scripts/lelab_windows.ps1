@@ -4,7 +4,7 @@
     [string]$Action
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
 
 $PackageRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -35,19 +35,6 @@ function Get-Executable([string]$InstallDir) {
 
 function Assert-NativeSuccess([string]$FailureMessage) {
     if ($LASTEXITCODE -ne 0) { throw $FailureMessage }
-}
-
-function Stop-RunningLeLab([string]$Executable) {
-    if (-not (Test-Path -LiteralPath $Executable)) { return }
-    $previousErrorAction = $ErrorActionPreference
-    try {
-        $ErrorActionPreference = "Continue"
-        & $Executable --stop 1>$null 2>$null
-    } catch {
-        # LeLab returns a message when no server is running; that is normal during repair/uninstall.
-    } finally {
-        $ErrorActionPreference = $previousErrorAction
-    }
 }
 
 function Select-InstallDirectory {
@@ -125,11 +112,15 @@ function Install-LeLab {
         Write-Host "[信息] 检测到 NVIDIA 显卡或驱动，将启用 CUDA 加速。"
     } else {
         Write-Host "[警告] 未检测到 NVIDIA 显卡或驱动。"
-        Write-Host "       将以 CPU 模式运行，训练会较慢；安装继续。"
+        $continue = Read-Host "将以 CPU 模式运行，训练会很慢。是否继续安装？(Y/N)"
+        if ($continue -notmatch '^[Yy]$') {
+            Write-Host "安装已取消。"
+            return
+        }
     }
 
     $exe = Get-Executable $installDir
-    Stop-RunningLeLab $exe
+    if (Test-Path -LiteralPath $exe) { $null = & $exe --stop 2>&1 }
     New-Item -ItemType Directory -Force -Path $installDir | Out-Null
 
     Write-Host "[安装] 正在复制运行时文件..."
@@ -183,8 +174,8 @@ function Stop-LeLab {
     $exe = Get-Executable (Get-InstallDirectory)
     if (-not (Test-Path -LiteralPath $exe)) { Fail "LeLab-zh 未安装。" }
     Write-Host "[停止] 正在停止 LeLab-zh..."
-    Stop-RunningLeLab $exe
-    Write-Host "[完成] LeLab-zh 已停止（如果原本未运行，也视为完成）。"
+    $null = & $exe --stop 2>&1
+    Write-Host "[完成] LeLab-zh 已停止。"
     Pause-ForUser
 }
 
@@ -192,7 +183,7 @@ function Repair-LeLab {
     $installDir = Get-InstallDirectory
     if (-not (Test-Path -LiteralPath (Join-Path $installDir "wheels"))) { Fail "本地修复文件不存在，请重新运行「一键安装」。" }
     $exe = Get-Executable $installDir
-    Stop-RunningLeLab $exe
+    if (Test-Path -LiteralPath $exe) { $null = & $exe --stop 2>&1 }
     $venv = Join-Path $installDir "venv"
     $backup = Join-Path $installDir "venv.backup"
     if (Test-Path -LiteralPath $backup) { Remove-Item -LiteralPath $backup -Recurse -Force }
@@ -223,9 +214,15 @@ function Uninstall-LeLab {
     if ($confirm -notmatch '^[Yy]$') { Write-Host "卸载已取消。"; return }
 
     $exe = Get-Executable $installDir
-    Stop-RunningLeLab $exe
+    if (Test-Path -LiteralPath $exe) { $null = & $exe --stop 2>&1 }
     Remove-Item -LiteralPath (Join-Path ([Environment]::GetFolderPath("Desktop")) "Start LeLab.lnk") -Force -ErrorAction SilentlyContinue
-    if (Test-Path -LiteralPath $installDir) { Remove-Item -LiteralPath $installDir -Recurse -Force }
+    if (Test-Path -LiteralPath $installDir) {
+        try {
+            Remove-Item -LiteralPath $installDir -Recurse -Force -ErrorAction Stop
+        } catch {
+            Write-Host "[警告] 部分文件无法删除（可能正在被占用）：$($_.Exception.Message)" -ForegroundColor Yellow
+        }
+    }
     Remove-Item -LiteralPath $LocationFile -Force -ErrorAction SilentlyContinue
     Write-Host "[完成] LeLab-zh 已卸载。"
     Pause-ForUser
