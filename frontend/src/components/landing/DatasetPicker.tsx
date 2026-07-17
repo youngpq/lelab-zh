@@ -14,6 +14,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { DatasetItem } from "@/lib/replayApi";
+import { useTranslation } from "react-i18next";
 
 interface DatasetPickerProps {
   datasets: DatasetItem[];
@@ -35,6 +36,7 @@ const DatasetPicker: React.FC<DatasetPickerProps> = ({
   onOpenCustom,
   children,
 }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -49,12 +51,12 @@ const DatasetPicker: React.FC<DatasetPickerProps> = ({
 
   const createDisabled = matchesExisting || (trimmed !== "" && !canCreate);
   const createLabel = matchesExisting
-    ? "Already exists"
+    ? t("landing.datasetAlreadyExists")
     : trimmed === ""
-      ? "Create new dataset…"
+      ? t("landing.createDataset")
       : canCreate
-        ? `Create "${trimmed}"`
-        : 'Use a name without "/"';
+        ? t("landing.createDatasetNamed", { name: trimmed })
+        : t("landing.datasetNameNoSlash");
 
   const handleFooterCreate = () => {
     if (createDisabled) return;
@@ -96,10 +98,10 @@ const DatasetPicker: React.FC<DatasetPickerProps> = ({
     >
       <span className="flex-1 truncate">{d.repo_id}</span>
       {d.source === "both" && (
-        <span className="text-xs text-gray-400 mr-2">on Hub</span>
+        <span className="text-xs text-gray-400 mr-2">{t("landing.onHub")}</span>
       )}
       {d.private && (
-        <span className="text-xs text-amber-400">private</span>
+        <span className="text-xs text-amber-400">{t("landing.private")}</span>
       )}
     </CommandItem>
   );
@@ -113,7 +115,7 @@ const DatasetPicker: React.FC<DatasetPickerProps> = ({
       >
         <Command className="bg-gray-800">
           <CommandInput
-            placeholder="Search, type a new name, or org/name…"
+            placeholder={t("landing.searchCreateDataset")}
             value={query}
             onValueChange={(v) => setQuery(v.replace(/[^A-Za-z0-9._\-/]/g, "_"))}
             onKeyDown={(e) => {
@@ -132,12 +134,12 @@ const DatasetPicker: React.FC<DatasetPickerProps> = ({
             {datasets.length === 0 && !canCreate && !canOpenCustom && (
               <CommandEmpty className="py-4 text-sm text-gray-400 text-center">
                 {loading
-                  ? "Loading datasets…"
-                  : "No datasets yet. Type a name to create one."}
+                  ? t("landing.loadingDatasets")
+                  : t("landing.noDatasetsYet")}
               </CommandEmpty>
             )}
             {localDatasets.length > 0 && (
-              <CommandGroup heading="Local">
+              <CommandGroup heading={t("landing.local")}>
                 {localDatasets.map(renderItem)}
               </CommandGroup>
             )}
@@ -147,14 +149,14 @@ const DatasetPicker: React.FC<DatasetPickerProps> = ({
               </CommandGroup>
             )}
             {canOpenCustom && (
-              <CommandGroup heading="Custom repo">
+              <CommandGroup heading={t("landing.customRepository")}>
                 <CommandItem
                   value={`__open__${trimmed}`}
                   onSelect={handleOpenCustom}
                   className="text-white aria-selected:bg-gray-700"
                 >
                   <ExternalLink className="mr-2 h-4 w-4" />
-                  Open &quot;{trimmed}&quot; in viewer
+                  {t("landing.openInViewer", { name: trimmed })}
                 </CommandItem>
               </CommandGroup>
             )}

@@ -3,6 +3,7 @@ import React from 'react';
 import { Mic, MicOff, Send, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useTranslation } from "react-i18next";
 
 interface CommandBarProps {
   command: string;
@@ -25,13 +26,14 @@ const CommandBar: React.FC<CommandBarProps> = ({
   setShowCamera,
   handleEndSession
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="bg-gray-900 p-4 space-y-4">
       <div className="flex flex-col sm:flex-row gap-4 items-center max-w-4xl mx-auto w-full">
         <Input
           value={command}
           onChange={(e) => setCommand(e.target.value)}
-          placeholder="Tell the robot what to do..."
+          placeholder={t("teleoperation.commandPlaceholder")}
           className="flex-1 bg-gray-800 border-gray-600 text-white placeholder-gray-400 text-lg py-3"
           onKeyPress={(e) => e.key === 'Enter' && handleSendCommand()}
         />
@@ -40,7 +42,7 @@ const CommandBar: React.FC<CommandBarProps> = ({
           className="bg-orange-500 hover:bg-orange-600 px-6 py-3 self-stretch sm:self-auto"
         >
           <Send strokeWidth={1.5} />
-          Send
+          {t("teleoperation.send")}
         </Button>
       </div>
 

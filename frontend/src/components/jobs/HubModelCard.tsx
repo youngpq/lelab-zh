@@ -3,23 +3,25 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HubModel } from "@/lib/jobsApi";
 import { ExternalLink, Lock, Upload } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   model: HubModel;
 }
 
-function relativeTime(iso: string | null): string {
+function relativeTime(iso: string | null, t: (key: string, options?: Record<string, unknown>) => string): string {
   if (!iso) return "—";
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return "—";
-  const diff = Math.max(0, (Date.now() - t) / 1000);
-  if (diff < 60) return `${Math.floor(diff)}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
+  const timestamp = Date.parse(iso);
+  if (Number.isNaN(timestamp)) return "—";
+  const diff = Math.max(0, (Date.now() - timestamp) / 1000);
+  if (diff < 60) return t("jobs.secondsAgo", { count: Math.floor(diff) });
+  if (diff < 3600) return t("jobs.minutesAgo", { count: Math.floor(diff / 60) });
+  if (diff < 86400) return t("jobs.hoursAgo", { count: Math.floor(diff / 3600) });
+  return t("jobs.daysAgo", { count: Math.floor(diff / 86400) });
 }
 
 const HubModelCard: React.FC<Props> = ({ model }) => {
+  const { t } = useTranslation();
   const url = `https://huggingface.co/${model.repo_id}`;
   const shortName = model.repo_id.includes("/")
     ? model.repo_id.split("/").slice(1).join("/")
@@ -34,14 +36,14 @@ const HubModelCard: React.FC<Props> = ({ model }) => {
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-sky-400">
             <Upload className="w-3.5 h-3.5" />
-            Uploaded
+            {t("jobs.uploaded")}
           </div>
           <Button
             variant="ghost"
             size="icon"
             asChild
             className="h-7 w-7 text-slate-400 hover:text-white"
-            aria-label="View on Hub"
+            aria-label={t("jobs.viewOnHub")}
           >
             <a
               href={url}
@@ -64,7 +66,7 @@ const HubModelCard: React.FC<Props> = ({ model }) => {
             <span className="truncate">{shortName}</span>
           </div>
           <div className="text-xs text-slate-400 truncate" title={model.repo_id}>
-            {model.repo_id} · updated {relativeTime(model.last_modified)}
+            {model.repo_id} · {t("jobs.updatedAgo", { time: relativeTime(model.last_modified, t) })}
           </div>
         </div>
       </CardContent>

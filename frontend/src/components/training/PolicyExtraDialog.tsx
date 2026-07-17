@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useInstallExtra } from "@/hooks/useInstallExtra";
+import { useTranslation } from "react-i18next";
 import {
   InstallProgress,
   InstallTitleIcon,
@@ -34,8 +35,9 @@ const PolicyExtraDialog: React.FC<Props> = ({
   installTarget,
   installHint,
 }) => {
+  const { t } = useTranslation();
   const install = useInstallExtra(`system/policy-extra/${policyType}`, open);
-  const title = `${policyType.toUpperCase()} needs an extra package`;
+  const title = t("training.policyNeedsExtra", { policy: policyType.toUpperCase() });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -43,10 +45,10 @@ const PolicyExtraDialog: React.FC<Props> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-white">
             <InstallTitleIcon state={install.state} />
-            {installTitle(install.state, title)}
+            {installTitle(install.state, title, t)}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            Install {installTarget} to train {policyType}.
+            {t("training.policyInstallDescription", { target: installTarget, policy: policyType })}
           </DialogDescription>
         </DialogHeader>
 
@@ -63,14 +65,14 @@ const PolicyExtraDialog: React.FC<Props> = ({
             idleTitle={title}
             idleDescription={
               <>
-                Training a <span className="font-semibold">{policyType}</span> policy needs the{" "}
-                <code className="px-1 py-0.5 rounded bg-slate-900 text-sky-300">{packageName}</code>{" "}
-                package (installed via{" "}
-                <code className="px-1 py-0.5 rounded bg-slate-900 text-sky-300">{installTarget}</code>),
-                which isn't in this environment yet. Install it to train this policy.
+                {t("training.policyDescription", {
+                  policy: policyType,
+                  package: packageName,
+                  target: installTarget,
+                })}
               </>
             }
-            doneDescription={<RestartInstructions purpose={`${policyType} training`} />}
+            doneDescription={<RestartInstructions purpose={t("training.policyTraining", { policy: policyType })} />}
           />
         </div>
       </DialogContent>

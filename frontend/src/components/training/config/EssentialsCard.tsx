@@ -161,7 +161,7 @@ const EssentialsCard: React.FC<EssentialsCardProps> = ({ config, updateConfig, d
               onChange={(e) =>
                 updateConfig('wandb_project', e.target.value || undefined)
               }
-              placeholder="my-robotics-project"
+              placeholder={t("training.projectPlaceholder")}
               className="bg-slate-900 border-slate-600 text-white rounded-lg"
             />
           </div>

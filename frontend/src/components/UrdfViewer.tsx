@@ -7,6 +7,7 @@ import React, {
   memo,
 } from "react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 import URDFManipulator from "urdf-loader/src/urdf-manipulator-element.js";
 import { useUrdf } from "@/hooks/useUrdf";
@@ -32,6 +33,7 @@ interface UrdfViewerElement extends HTMLElement {
 }
 
 const UrdfViewer: React.FC = () => {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [highlightedJoint, setHighlightedJoint] = useState<string | null>(null);
   const { registerUrdfProcessor, alternativeUrdfModels, isDefaultModel } =
@@ -274,7 +276,7 @@ const UrdfViewer: React.FC = () => {
       {/* Joint highlight indicator */}
       {highlightedJoint && (
         <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-2 rounded-md text-sm font-mono z-10">
-          Joint: {highlightedJoint}
+          {t("urdf.joint")}: {highlightedJoint}
         </div>
       )}
 
@@ -293,7 +295,7 @@ const UrdfViewer: React.FC = () => {
                 isWebSocketConnected ? "bg-green-400" : "bg-red-400"
               }`}
             />
-            {isWebSocketConnected ? "Live Robot Data" : "Disconnected"}
+            {isWebSocketConnected ? t("urdf.liveRobotData") : t("urdf.disconnected")}
           </div>
         </div>
       )}

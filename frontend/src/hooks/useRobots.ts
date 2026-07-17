@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useApi } from "@/contexts/ApiContext";
 import { useToast } from "@/hooks/use-toast";
 import type { CameraConfig } from "@/components/recording/CameraConfiguration";
@@ -37,6 +38,7 @@ const writeSelected = (name: string | null) => {
 export const useRobots = () => {
   const { baseUrl, fetchWithHeaders } = useApi();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const location = useLocation();
 
   const [records, setRecords] = useState<Record<string, RobotRecord>>({});
@@ -89,11 +91,11 @@ export const useRobots = () => {
     async (rawName: string): Promise<boolean> => {
       const name = rawName.trim();
       if (!name) {
-        toast({ title: "Missing name", description: "Robot name cannot be empty.", variant: "destructive" });
+        toast({ title: t("robot.missingName"), description: t("robot.nameCannotBeEmpty"), variant: "destructive" });
         return false;
       }
       if (/[/\\]|\.\./.test(name)) {
-        toast({ title: "Invalid name", description: "Robot names cannot contain '/', '\\', or '..'", variant: "destructive" });
+        toast({ title: t("robot.invalidName"), description: t("robot.invalidNameDescription"), variant: "destructive" });
         return false;
       }
       try {
@@ -104,15 +106,15 @@ export const useRobots = () => {
         });
         if (res.status === 409) {
           toast({
-            title: "Already exists",
-            description: `A robot named "${name}" already exists. Pick it from the dropdown or choose a different name.`,
+            title: t("robot.alreadyExists"),
+            description: t("robot.alreadyExistsDescription", { name }),
             variant: "destructive",
           });
           return false;
         }
         if (!res.ok) {
           const text = await res.text();
-          toast({ title: "Failed to create", description: text, variant: "destructive" });
+          toast({ title: t("robot.failedToCreate"), description: text, variant: "destructive" });
           return false;
         }
         const data = await res.json();
@@ -122,11 +124,11 @@ export const useRobots = () => {
         }
         return true;
       } catch (e) {
-        toast({ title: "Network error", description: String(e), variant: "destructive" });
+        toast({ title: t("robot.networkError"), description: String(e), variant: "destructive" });
         return false;
       }
     },
-    [baseUrl, fetchWithHeaders, toast]
+    [baseUrl, fetchWithHeaders, toast, t]
   );
 
   const deleteRobot = useCallback(
@@ -137,7 +139,7 @@ export const useRobots = () => {
         });
         if (!res.ok) {
           const text = await res.text();
-          toast({ title: "Failed to delete", description: text, variant: "destructive" });
+          toast({ title: t("robot.failedToDelete"), description: text, variant: "destructive" });
           return false;
         }
         setRecords((prev) => {
@@ -147,11 +149,11 @@ export const useRobots = () => {
         setSelectedName((prev) => (prev === name ? null : prev));
         return true;
       } catch (e) {
-        toast({ title: "Network error", description: String(e), variant: "destructive" });
+        toast({ title: t("robot.networkError"), description: String(e), variant: "destructive" });
         return false;
       }
     },
-    [baseUrl, fetchWithHeaders, toast]
+    [baseUrl, fetchWithHeaders, toast, t]
   );
 
   const selectedRecord = useMemo(

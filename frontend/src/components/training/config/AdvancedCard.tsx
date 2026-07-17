@@ -262,7 +262,7 @@ const AdvancedCard: React.FC<ConfigComponentProps> = ({ config, updateConfig }) 
                     onChange={(e) =>
                       updateConfig('wandb_entity', e.target.value || undefined)
                     }
-                    placeholder="your-username"
+                    placeholder={t("training.usernamePlaceholder")}
                     className="bg-slate-900 border-slate-600 text-white rounded-lg"
                   />
                 </div>
@@ -276,7 +276,7 @@ const AdvancedCard: React.FC<ConfigComponentProps> = ({ config, updateConfig }) 
                     onChange={(e) =>
                       updateConfig('wandb_notes', e.target.value || undefined)
                     }
-                    placeholder="Training run notes..."
+                    placeholder={t("training.notesPlaceholder")}
                     className="bg-slate-900 border-slate-600 text-white rounded-lg"
                   />
                 </div>

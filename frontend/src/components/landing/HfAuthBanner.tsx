@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useApi } from "@/contexts/ApiContext";
 import { useHfAuth } from "@/contexts/HfAuthContext";
+import { useTranslation } from "react-i18next";
 
 const HfAuthBanner: React.FC = () => {
+  const { t } = useTranslation();
   const { auth, refetch } = useHfAuth();
   const { baseUrl, fetchWithHeaders } = useApi();
   const [token, setToken] = useState("");
@@ -47,10 +49,10 @@ const HfAuthBanner: React.FC = () => {
         <div className="flex-1 space-y-3">
           <div>
             <p className="text-sm text-amber-100 font-medium">
-              Hugging Face access required for cloud training
+              {t("auth.cloudTrainingRequired")}
             </p>
             <p className="text-xs text-amber-200/80 mt-1">
-              Create a token at{" "}
+              {t("auth.tokenInstructionsBefore")}{" "}
               <a
                 href="https://huggingface.co/settings/tokens"
                 target="_blank"
@@ -60,8 +62,7 @@ const HfAuthBanner: React.FC = () => {
                 huggingface.co/settings/tokens
                 <ExternalLink className="w-3 h-3" />
               </a>
-              {" "}with <span className="font-mono">Write</span> access (so trained
-              policies can upload to your account), then paste it below.
+              {" "}{t("auth.tokenInstructionsAfter")}
             </p>
           </div>
           <form
@@ -88,10 +89,10 @@ const HfAuthBanner: React.FC = () => {
               {submitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving…
+                  {t("auth.saving")}
                 </>
               ) : (
-                "Save token"
+                t("auth.saveToken")
               )}
             </Button>
           </form>

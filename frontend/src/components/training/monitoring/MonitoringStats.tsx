@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { useTranslation } from "react-i18next";
 
 interface MonitoringStatsProps {
   jobId: string;
@@ -38,6 +39,7 @@ const MonitoringStats: React.FC<MonitoringStatsProps> = ({
   getProgressPercentage,
   formatTime,
 }) => {
+  const { t } = useTranslation();
   const [lossHistory, setLossHistory] = useState<LossPoint[]>([]);
   const [lrHistory, setLrHistory] = useState<LrPoint[]>([]);
   const lastStepRef = useRef(0);
@@ -125,7 +127,7 @@ const MonitoringStats: React.FC<MonitoringStatsProps> = ({
                 <Activity className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm text-slate-400">Progress</h3>
+                <h3 className="text-sm text-slate-400">{t("training.progress")}</h3>
                 <div className="text-base font-semibold text-white">{stepLabel}</div>
               </div>
             </div>

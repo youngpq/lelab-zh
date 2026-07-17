@@ -10,6 +10,7 @@ import {
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useApi } from "@/contexts/ApiContext";
+import { useTranslation } from "react-i18next";
 
 interface PortDetectionModalProps {
   open: boolean;
@@ -26,6 +27,7 @@ const PortDetectionModal: React.FC<PortDetectionModalProps> = ({
   robotType,
   onPortDetected,
 }) => {
+  const { t } = useTranslation();
   const [step, setStep] = useState<"detecting" | "success" | "error">(
     "detecting"
   );
@@ -77,8 +79,8 @@ const PortDetectionModal: React.FC<PortDetectionModalProps> = ({
           if (cancelledRef.current) return;
           setStep("success");
           toast({
-            title: "Port Detected Successfully",
-            description: `${robotType} port detected: ${data.port}`,
+            title: t("portDetection.successTitle"),
+            description: t("portDetection.successDescription", { robotType, port: data.port }),
           });
           successTimerRef.current = window.setTimeout(() => {
             if (cancelledRef.current) return;
@@ -152,11 +154,10 @@ const PortDetectionModal: React.FC<PortDetectionModalProps> = ({
             <Loader2 className="w-16 h-16 text-blue-500 mx-auto animate-spin" />
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-white">
-                Unplug the {robotType} arm
+                {t("portDetection.unplugArm", { robotType })}
               </h3>
               <p className="text-gray-400">
-                Disconnect the {robotType} robot arm from USB. The port will be
-                detected automatically.
+                {t("portDetection.unplugDescription", { robotType })}
               </p>
             </div>
             <div className="flex justify-center">
@@ -165,7 +166,7 @@ const PortDetectionModal: React.FC<PortDetectionModalProps> = ({
                 variant="outline"
                 className="border-gray-500 hover:border-gray-200 text-gray-300 hover:text-white px-8 py-2"
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
             </div>
           </div>
@@ -177,7 +178,7 @@ const PortDetectionModal: React.FC<PortDetectionModalProps> = ({
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-white">
-                Port Detected
+                {t("portDetection.detected")}
               </h3>
               <p className="text-xl font-mono text-green-400 bg-gray-800 px-4 py-2 rounded inline-block">
                 {detectedPort}
@@ -192,7 +193,7 @@ const PortDetectionModal: React.FC<PortDetectionModalProps> = ({
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto" />
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-white">
-                Detection Failed
+                {t("portDetection.failed")}
               </h3>
               <div className="bg-red-900/20 border border-red-800 rounded-lg p-3">
                 <p className="text-red-400 text-sm">{error}</p>
@@ -203,14 +204,14 @@ const PortDetectionModal: React.FC<PortDetectionModalProps> = ({
                 onClick={handleRetry}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-2"
               >
-                Try Again
+                {t("common.retry")}
               </Button>
               <Button
                 onClick={handleCancel}
                 variant="outline"
                 className="border-gray-500 hover:border-gray-200 text-gray-300 hover:text-white px-8 py-2"
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
             </div>
           </div>
@@ -226,10 +227,10 @@ const PortDetectionModal: React.FC<PortDetectionModalProps> = ({
       <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[500px] p-8">
         <DialogHeader>
           <DialogTitle className="text-white text-center text-xl font-bold">
-            Port Detection
+            {t("portDetection.title")}
           </DialogTitle>
           <DialogDescription className="text-gray-400 text-center">
-            Detect the USB port for your {robotType} arm
+            {t("portDetection.description", { robotType })}
           </DialogDescription>
         </DialogHeader>
 

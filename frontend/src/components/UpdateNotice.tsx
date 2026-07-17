@@ -140,7 +140,7 @@ const UpdateNotice = () => {
                   variant="outline"
                   size="icon"
                   onClick={copyCommand}
-                  title="Copy command"
+                  title={t("update.copyCommand")}
                   className="shrink-0 bg-slate-900 border-slate-600 text-white hover:bg-slate-700"
                 >
                   <Copy className="w-4 h-4" />
@@ -162,7 +162,7 @@ const UpdateNotice = () => {
                 onCheckedChange={(v) => setDontAsk(v === true)}
                 className="border-slate-300 data-[state=checked]:bg-slate-300 data-[state=checked]:text-slate-900"
               />
-              Don't ask me again
+              {t("update.dontAskAgain")}
             </label>
             <div className="flex items-center gap-2">
               <Button
@@ -171,17 +171,17 @@ const UpdateNotice = () => {
                 disabled={updating}
                 className="text-slate-300 hover:bg-slate-700 hover:text-white"
               >
-                Later
+                {t("update.later")}
               </Button>
               {status.can_auto_update && (
                 <Button onClick={runUpdate} disabled={updating}>
                   {updating ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Updating…
+                      {t("update.updating")}
                     </>
                   ) : (
-                    "Update now"
+                    t("update.updateNow")
                   )}
                 </Button>
               )}

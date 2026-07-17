@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { UrdfProcessor, readUrdfFileContent } from "@/lib/UrdfDragAndDrop";
 import { UrdfFileModel } from "@/lib/types";
 import { RobotAnimationConfig } from "@/lib/types";
+import { useTranslation } from "react-i18next";
 
 // Define the result interface for Urdf detection
 interface UrdfDetectionResult {
@@ -56,6 +57,7 @@ interface UrdfProviderProps {
 }
 
 export const UrdfProvider: React.FC<UrdfProviderProps> = ({ children }) => {
+  const { t } = useTranslation();
   // State for Urdf processor
   const [urdfProcessor, setUrdfProcessor] = useState<UrdfProcessor | null>(
     null
@@ -111,10 +113,10 @@ export const UrdfProvider: React.FC<UrdfProviderProps> = ({ children }) => {
     setUrdfContent(null);
     setCurrentAnimationConfig(null);
 
-    toast.info("Switched to default model", {
-      description: "The default ARM100 robot model is now displayed.",
+    toast.info(t("urdf.defaultModel"), {
+      description: t("urdf.defaultModelDescription"),
     });
-  }, []);
+  }, [t]);
 
   // Register a callback for Urdf detection
   const onUrdfDetected = useCallback(
@@ -169,8 +171,8 @@ export const UrdfProvider: React.FC<UrdfProviderProps> = ({ children }) => {
       }
 
       // Show a toast notification that we're loading the Urdf
-      const loadingToast = toast.loading("Loading Urdf model...", {
-        description: "Preparing 3D visualization",
+      const loadingToast = toast.loading(t("urdf.loadingModel"), {
+        description: t("urdf.preparingVisualization"),
         duration: 5000,
       });
 
@@ -201,10 +203,10 @@ export const UrdfProvider: React.FC<UrdfProviderProps> = ({ children }) => {
         setIsDefaultModel(false);
 
         const modelDisplayName =
-          model.name || model.path.split("/").pop() || "Unknown";
+          model.name || model.path.split("/").pop() || t("common.unknown");
 
-        toast.success("Urdf model loaded successfully", {
-          description: `Model: ${modelDisplayName}`,
+        toast.success(t("urdf.loadedSuccessfully"), {
+          description: t("urdf.model", { name: modelDisplayName }),
           duration: 3000,
         });
 
@@ -216,8 +218,8 @@ export const UrdfProvider: React.FC<UrdfProviderProps> = ({ children }) => {
         // Error case
         console.error("❌ Error processing selected Urdf:", error);
         toast.dismiss(loadingToast);
-        toast.error("Error loading Urdf", {
-          description: `Error: ${
+        toast.error(t("urdf.loadError"), {
+          description: `${t("calibration.errorPrefix")} ${
             error instanceof Error ? error.message : String(error)
           }`,
           duration: 3000,
@@ -227,7 +229,7 @@ export const UrdfProvider: React.FC<UrdfProviderProps> = ({ children }) => {
         // No need to reset to default unless user explicitly chooses to
       }
     },
-    [urdfBlobUrls, urdfProcessor, notifyUrdfCallbacks]
+    [urdfBlobUrls, urdfProcessor, notifyUrdfCallbacks, t]
   );
 
   // Function to handle selecting a Urdf model from the modal
@@ -246,14 +248,14 @@ export const UrdfProvider: React.FC<UrdfProviderProps> = ({ children }) => {
           .split("/")
           .pop()
           ?.replace(/\.urdf$/i, "") ||
-        "Unknown";
+        t("common.unknown");
 
       urdfProcessor.loadUrdf(model.blobUrl);
 
       setIsDefaultModel(false);
 
-      toast.info(`Loading model: ${modelName}`, {
-        description: "Preparing 3D visualization",
+      toast.info(t("urdf.loadingModelNamed", { name: modelName }), {
+        description: t("urdf.preparingVisualization"),
         duration: 2000,
       });
 
@@ -264,7 +266,7 @@ export const UrdfProvider: React.FC<UrdfProviderProps> = ({ children }) => {
 
       processSelectedUrdf(model);
     },
-    [urdfProcessor, notifyUrdfCallbacks, processSelectedUrdf]
+    [urdfProcessor, notifyUrdfCallbacks, processSelectedUrdf, t]
   );
 
   const processUrdfFiles = useCallback(
@@ -309,8 +311,8 @@ export const UrdfProvider: React.FC<UrdfProviderProps> = ({ children }) => {
               setIsDefaultModel(false);
 
               if (files[availableModels[0]]) {
-                const loadingToast = toast.loading("Loading Urdf model...", {
-                  description: "Preparing 3D visualization",
+                const loadingToast = toast.loading(t("urdf.loadingModel"), {
+                  description: t("urdf.preparingVisualization"),
                   duration: 5000,
                 });
 
@@ -323,8 +325,8 @@ export const UrdfProvider: React.FC<UrdfProviderProps> = ({ children }) => {
 
                   toast.dismiss(loadingToast);
 
-                  toast.success("Urdf model loaded successfully", {
-                    description: `Model: ${modelName}`,
+                  toast.success(t("urdf.loadedSuccessfully"), {
+                    description: t("urdf.model", { name: modelName }),
                     duration: 3000,
                   });
 
@@ -335,8 +337,8 @@ export const UrdfProvider: React.FC<UrdfProviderProps> = ({ children }) => {
                 } catch (loadError) {
                   console.error("Error loading Urdf:", loadError);
                   toast.dismiss(loadingToast);
-                  toast.error("Error loading Urdf", {
-                    description: `Error: ${
+                  toast.error(t("urdf.loadError"), {
+                    description: `${t("calibration.errorPrefix")} ${
                       loadError instanceof Error
                         ? loadError.message
                         : String(loadError)
@@ -379,7 +381,7 @@ export const UrdfProvider: React.FC<UrdfProviderProps> = ({ children }) => {
 
             notifyUrdfCallbacks({
               hasUrdf: true,
-              modelName: "Multiple models available",
+              modelName: t("urdf.multipleModels"),
             });
           }
         } else {
@@ -387,15 +389,15 @@ export const UrdfProvider: React.FC<UrdfProviderProps> = ({ children }) => {
 
           resetToDefaultModel();
 
-          toast.error("No Urdf file found", {
-            description: "Please upload a folder containing a .urdf file.",
+          toast.error(t("urdf.notFound"), {
+            description: t("urdf.uploadFolder"),
             duration: 3000,
           });
         }
       } catch (error) {
         console.error("Error processing Urdf files:", error);
-        toast.error("Error processing files", {
-          description: `Error: ${
+        toast.error(t("urdf.processingError"), {
+          description: `${t("calibration.errorPrefix")} ${
             error instanceof Error ? error.message : String(error)
           }`,
           duration: 3000,
@@ -404,7 +406,7 @@ export const UrdfProvider: React.FC<UrdfProviderProps> = ({ children }) => {
         resetToDefaultModel();
       }
     },
-    [notifyUrdfCallbacks, urdfBlobUrls, urdfProcessor, resetToDefaultModel]
+    [notifyUrdfCallbacks, urdfBlobUrls, urdfProcessor, resetToDefaultModel, t]
   );
 
   // Revoke blob URLs only on unmount; ref tracks the latest set so we

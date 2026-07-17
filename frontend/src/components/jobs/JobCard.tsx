@@ -19,6 +19,7 @@ import {
   listJobCheckpoints,
 } from "@/lib/checkpointsApi";
 import CheckpointDropdown from "@/components/jobs/CheckpointDropdown";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   job: JobRecord;
@@ -27,25 +28,26 @@ interface Props {
   onPlay: (job: JobRecord, step: number) => void;
 }
 
-function relativeTime(epochSec: number): string {
+function relativeTime(epochSec: number, t: (key: string, options?: Record<string, unknown>) => string): string {
   const diff = Math.max(0, Date.now() / 1000 - epochSec);
-  if (diff < 60) return `${Math.floor(diff)}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
+  if (diff < 60) return t("jobs.secondsAgo", { count: Math.floor(diff) });
+  if (diff < 3600) return t("jobs.minutesAgo", { count: Math.floor(diff / 60) });
+  if (diff < 86400) return t("jobs.hoursAgo", { count: Math.floor(diff / 3600) });
+  return t("jobs.daysAgo", { count: Math.floor(diff / 86400) });
 }
 
 const statePresentation: Record<
   JobRecord["state"],
-  { label: string; color: string; Icon: React.ComponentType<{ className?: string }> }
+  { labelKey: string; color: string; Icon: React.ComponentType<{ className?: string }> }
 > = {
-  running: { label: "Running", color: "text-green-400", Icon: Loader2 },
-  done: { label: "Done", color: "text-slate-400", Icon: CheckCircle2 },
-  failed: { label: "Failed", color: "text-red-400", Icon: XCircle },
-  interrupted: { label: "Interrupted", color: "text-amber-400", Icon: AlertTriangle },
+  running: { labelKey: "jobs.running", color: "text-green-400", Icon: Loader2 },
+  done: { labelKey: "jobs.done", color: "text-slate-400", Icon: CheckCircle2 },
+  failed: { labelKey: "jobs.failed", color: "text-red-400", Icon: XCircle },
+  interrupted: { labelKey: "jobs.interrupted", color: "text-amber-400", Icon: AlertTriangle },
 };
 
 const JobCard: React.FC<Props> = ({ job, onStop, onDelete, onPlay }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { baseUrl, fetchWithHeaders } = useApi();
   const present = statePresentation[job.state];
@@ -53,7 +55,7 @@ const JobCard: React.FC<Props> = ({ job, onStop, onDelete, onPlay }) => {
   const isRunning = job.state === "running";
   const isImported = job.runner === "imported";
   const importedSource = job.hf_repo_id || job.output_dir;
-  const stateLabel = isImported ? "Imported" : present.label;
+  const stateLabel = isImported ? t("jobs.imported") : t(present.labelKey);
   const isStarting = isRunning && job.metrics.total_steps === 0;
   const progressPct =
     job.metrics.total_steps > 0
@@ -63,12 +65,12 @@ const JobCard: React.FC<Props> = ({ job, onStop, onDelete, onPlay }) => {
   const subtitle = isImported
     ? importedSource
     : isStarting
-    ? "starting…"
+    ? t("jobs.starting")
     : isRunning
-    ? `started ${relativeTime(job.started_at)}`
+    ? t("jobs.startedAgo", { time: relativeTime(job.started_at, t) })
     : job.ended_at != null
-    ? `ended ${relativeTime(job.ended_at)}`
-    : present.label.toLowerCase();
+    ? t("jobs.endedAgo", { time: relativeTime(job.ended_at, t) })
+    : t(present.labelKey).toLowerCase();
 
   const [checkpoints, setCheckpoints] = useState<JobCheckpoint[]>([]);
   const [selectedStep, setSelectedStep] = useState<number | null>(null);
@@ -107,11 +109,11 @@ const JobCard: React.FC<Props> = ({ job, onStop, onDelete, onPlay }) => {
   const handleAction = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isRunning) {
-      if (window.confirm("Stop this run?")) onStop(job.id);
+      if (window.confirm(t("jobs.stopRunQuestion"))) onStop(job.id);
     } else if (isImported) {
-      if (window.confirm("Remove this imported model? The source files are left untouched."))
+      if (window.confirm(t("jobs.removeImportedQuestion")))
         onDelete(job.id);
-    } else if (window.confirm("Delete this run? This wipes the output directory.")) {
+    } else if (window.confirm(t("jobs.deleteRunQuestion"))) {
       onDelete(job.id);
     }
   };
@@ -146,7 +148,7 @@ const JobCard: React.FC<Props> = ({ job, onStop, onDelete, onPlay }) => {
               size="icon"
               asChild
               className="h-7 w-7 text-slate-400 hover:text-white"
-              aria-label="Open Hub job page"
+              aria-label={t("jobs.openHubJob")}
             >
               <a
                 href={job.hf_job_url}
@@ -163,7 +165,7 @@ const JobCard: React.FC<Props> = ({ job, onStop, onDelete, onPlay }) => {
               size="icon"
               onClick={handleAction}
               className="h-7 w-7 text-slate-400 hover:text-white"
-              aria-label={isRunning ? "Stop job" : "Delete job"}
+              aria-label={isRunning ? t("jobs.stopJob") : t("jobs.deleteJob")}
             >
               {isRunning ? <Square className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
             </Button>
@@ -192,7 +194,7 @@ const JobCard: React.FC<Props> = ({ job, onStop, onDelete, onPlay }) => {
               style={{ width: `${progressPct}%` }}
             />
             <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white tabular-nums drop-shadow">
-              {isStarting ? "Training starting…" : `${progressPct.toFixed(1)}%`}
+              {isStarting ? t("jobs.trainingStarting") : `${progressPct.toFixed(1)}%`}
             </div>
           </div>
         ) : null}
@@ -207,7 +209,7 @@ const JobCard: React.FC<Props> = ({ job, onStop, onDelete, onPlay }) => {
               size="icon"
               onClick={handlePlay}
               className="h-8 w-8 bg-green-500 hover:bg-green-600 text-white"
-              aria-label="Run inference with this checkpoint"
+              aria-label={t("jobs.runInferenceCheckpoint")}
             >
               <Play className="w-4 h-4" />
             </Button>

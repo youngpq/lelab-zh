@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Terminal, ExternalLink, Copy, Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const ONE_LINER =
   "uv tool install git+https://github.com/huggingface/leLab.git && lelab";
@@ -24,6 +25,7 @@ const UsageInstructionsModal: React.FC<UsageInstructionsModalProps> = ({
   onOpenChange,
   dismissible = true,
 }) => {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const blockClose = (e: Event) => {
@@ -55,18 +57,17 @@ const UsageInstructionsModal: React.FC<UsageInstructionsModalProps> = ({
         <DialogHeader className="text-center sm:text-center min-w-0">
           <DialogTitle className="text-white flex items-center justify-center gap-2 text-xl">
             <Terminal className="w-6 h-6" />
-            Get Started with LeLab
+            {t("usage.title")}
           </DialogTitle>
           <DialogDescription>
-            LeLab runs on your machine. Click the command to copy it, then paste
-            in a terminal:
+            {t("usage.description")}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2 min-w-0">
           <button
             type="button"
             onClick={handleCopy}
-            aria-label="Copy command to clipboard"
+            aria-label={t("usage.copyCommand")}
             className="group relative w-full bg-gray-800 hover:bg-gray-750 rounded-lg border border-gray-700 hover:border-gray-600 text-left transition-colors cursor-pointer"
           >
             <pre className="p-4 pr-12 text-xs sm:text-sm overflow-x-auto whitespace-pre-wrap break-all">
@@ -76,18 +77,18 @@ const UsageInstructionsModal: React.FC<UsageInstructionsModalProps> = ({
               {copied ? (
                 <>
                   <Check className="w-3.5 h-3.5 text-green-400" />
-                  Copied
+                  {t("common.copied")}
                 </>
               ) : (
                 <>
                   <Copy className="w-3.5 h-3.5" />
-                  Copy
+                  {t("common.copy")}
                 </>
               )}
             </span>
           </button>
           <p className="text-gray-400 text-sm text-center">
-            After running, your browser will open the local LeLab app.
+            {t("usage.afterRunning")}
           </p>
           <Button
             asChild
@@ -95,7 +96,7 @@ const UsageInstructionsModal: React.FC<UsageInstructionsModalProps> = ({
           >
             <a href={LOCAL_URL} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="w-4 h-4 mr-2" />
-              Open LeLab
+              {t("usage.open")}
             </a>
           </Button>
         </div>

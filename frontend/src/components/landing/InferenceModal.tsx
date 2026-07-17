@@ -335,7 +335,7 @@ const InferenceModal: React.FC<Props> = ({
                   id="task"
                   value={task}
                   onChange={(e) => setTask(e.target.value)}
-                  placeholder="e.g., pick up the red block"
+                  placeholder={t("inference.taskPlaceholder")}
                   className="bg-gray-800 border-gray-700 text-white"
                 />
                 <p className="text-xs text-gray-500">

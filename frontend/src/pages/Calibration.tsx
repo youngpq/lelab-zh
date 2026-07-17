@@ -288,7 +288,7 @@ const Calibration = () => {
       calibrationActiveRef.current = false;
       console.error("Error starting calibration:", error);
       toast({
-        title: "Error",
+        title: t("common.error"),
         description: t("calibration.failedToStart"),
         variant: "destructive",
       });
@@ -311,7 +311,7 @@ const Calibration = () => {
         });
       } else {
         toast({
-          title: "Error",
+          title: t("common.error"),
           description: result.message || t("calibration.failedToStop"),
           variant: "destructive",
         });
@@ -319,7 +319,7 @@ const Calibration = () => {
     } catch (error) {
       console.error("Error stopping calibration:", error);
       toast({
-        title: "Error",
+        title: t("common.error"),
         description: t("calibration.failedToStop"),
         variant: "destructive",
       });
@@ -352,7 +352,7 @@ const Calibration = () => {
     } catch (error) {
       console.error("Error completing step:", error);
       toast({
-        title: "Error",
+        title: t("common.error"),
         description: t("calibration.couldNotCompleteStep"),
         variant: "destructive",
       });
@@ -485,43 +485,43 @@ const Calibration = () => {
         return {
           color: "bg-slate-500",
           icon: <Settings className="w-4 h-4" />,
-          text: "Idle",
+          text: t("calibration.idle"),
         };
       case "connecting":
         return {
           color: "bg-yellow-500",
           icon: <Loader2 className="w-4 h-4 animate-spin" />,
-          text: "Connecting",
+          text: t("calibration.connecting"),
         };
       case "recording":
         return {
           color: "bg-purple-500",
           icon: <Activity className="w-4 h-4" />,
-          text: "Recording Ranges",
+          text: t("calibration.recordingRanges"),
         };
       case "completed":
         return {
           color: "bg-green-500",
           icon: <CheckCircle className="w-4 h-4" />,
-          text: "Completed",
+          text: t("calibration.completed"),
         };
       case "error":
         return {
           color: "bg-red-500",
           icon: <XCircle className="w-4 h-4" />,
-          text: "Error",
+          text: t("common.error"),
         };
       case "stopping":
         return {
           color: "bg-orange-500",
           icon: <Square className="w-4 h-4" />,
-          text: "Stopping",
+          text: t("calibration.stopping"),
         };
       default:
         return {
           color: "bg-slate-500",
           icon: <Settings className="w-4 h-4" />,
-          text: "Unknown",
+          text: t("common.unknown"),
         };
     }
   };
@@ -734,7 +734,7 @@ const Calibration = () => {
                                     {rangeComplete && (
                                       <CheckCircle
                                         className="w-4 h-4 text-green-400"
-                                        aria-label="Range complete"
+                                        aria-label={t("calibration.rangeComplete")}
                                       />
                                     )}
                                   </div>
@@ -782,7 +782,7 @@ const Calibration = () => {
                 <Alert className="bg-yellow-900/50 border-yellow-700 text-yellow-200">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Connecting to the device. Please ensure it's connected.
+                    {t("calibration.connectingDescription")}
                   </AlertDescription>
                 </Alert>
               )}
@@ -816,15 +816,14 @@ const Calibration = () => {
                         ) : (
                           <AlertCircle className="w-4 h-4 mr-2" />
                         )}
-                        Save Calibration
+                        {t("calibration.saveCalibration")}
                       </Button>
                     </div>
                     <Alert className="bg-purple-900/50 border-purple-700 text-purple-200">
                       <Activity className="h-4 w-4" />
                       <AlertDescription>
-                        <strong>Important:</strong> Move EACH joint through its
-                        full range. A check appears next to each joint once its
-                        range is wide enough.
+                        <strong>{t("calibration.important")}</strong>{" "}
+                        {t("calibration.moveEachJoint")}
                       </AlertDescription>
                     </Alert>
                   </div>
@@ -835,7 +834,7 @@ const Calibration = () => {
                 <Alert className="bg-green-900/50 border-green-700 text-green-200">
                   <CheckCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Calibration completed successfully!
+                    {t("calibration.completedDescription")}
                   </AlertDescription>
                 </Alert>
               )}
@@ -849,13 +848,10 @@ const Calibration = () => {
                     <XCircle className="h-4 w-4" />
                     <AlertDescription>
                       <div className="font-semibold text-base mb-1">
-                        Motor discontinuity detected
+                        {t("calibration.motorDiscontinuity")}
                       </div>
                       <div>
-                        Make sure to start the calibration with the robot in a
-                        middle position — all joints in the middle of their
-                        ranges. See the calibration demo below for the correct
-                        starting pose.
+                        {t("calibration.motorDiscontinuityDescription")}
                       </div>
                     </AlertDescription>
                   </Alert>
@@ -863,7 +859,8 @@ const Calibration = () => {
                   <Alert className="bg-red-900/50 border-red-700 text-red-200">
                     <XCircle className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>Error:</strong> {calibrationStatus.error}
+                      <strong>{t("calibration.errorPrefix")}</strong>{" "}
+                      {calibrationStatus.error}
                     </AlertDescription>
                   </Alert>
                 ))}
@@ -873,7 +870,7 @@ const Calibration = () => {
                 className="bg-slate-900/50 p-4 rounded-lg border border-slate-700"
               >
                 <h4 className="font-semibold mb-3 text-slate-200">
-                  Calibration Demo:
+                  {t("calibration.demo")}
                 </h4>
                 <div className="relative rounded-lg overflow-hidden bg-slate-800">
                   <video

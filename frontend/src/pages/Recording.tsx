@@ -272,7 +272,7 @@ const Recording = () => {
         const data = await response.json();
         setOptimisticPhase(null);
         toast({
-          title: "Error",
+          title: t("common.error"),
           description: data.message,
           variant: "destructive",
         });
@@ -307,7 +307,7 @@ const Recording = () => {
         });
       } else {
         toast({
-          title: "Error",
+          title: t("common.error"),
           description: data.message,
           variant: "destructive",
         });
@@ -334,7 +334,7 @@ const Recording = () => {
       });
     } catch (error) {
       toast({
-        title: "Error",
+        title: t("common.error"),
         description: t("recording.failedToStop"),
         variant: "destructive",
       });
@@ -396,9 +396,9 @@ const Recording = () => {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
-          <p className="text-lg">No recording configuration found.</p>
+          <p className="text-lg">{t("recording.noConfigurationFound")}</p>
           <Button onClick={() => navigate("/")} className="mt-4">
-            Return to Home
+            {t("common.returnHome")}
           </Button>
         </div>
       </div>
@@ -411,7 +411,7 @@ const Recording = () => {
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
-          <p className="text-lg">Connecting to recording session...</p>
+          <p className="text-lg">{t("recording.connectingSession")}</p>
         </div>
       </div>
     );
@@ -474,10 +474,10 @@ const Recording = () => {
 
         <div className="bg-gray-900 rounded-lg border border-gray-700 p-8">
           <div className="flex justify-end items-center gap-4 mb-6 text-sm text-gray-400">
-            <span aria-label={`Episode ${currentEpisode} of ${totalEpisodes}`}>
+            <span aria-label={t("recording.episodeProgress", { current: currentEpisode, total: totalEpisodes })}>
               {t("recording.episode")} <span className="text-white font-semibold">{currentEpisode}</span> / {totalEpisodes}
             </span>
-            <span className="font-mono" aria-label={`Total session time ${formatTime(sessionElapsedTime)}`}>
+            <span className="font-mono" aria-label={t("recording.sessionTime", { time: formatTime(sessionElapsedTime) })}>
               {formatTime(sessionElapsedTime)}
             </span>
             <Button
@@ -566,13 +566,13 @@ const Recording = () => {
             <PrimaryIcon className="w-5 h-5 mr-2" />
             {primaryLabel}
             {currentPhase !== "completed" && (
-              <span className="ml-3 px-2 py-0.5 rounded text-xs font-mono bg-black/30 text-white/70">SPACE / →</span>
+              <span className="ml-3 px-2 py-0.5 rounded text-xs font-mono bg-black/30 text-white/70">{t("recording.keyboardAdvance")}</span>
             )}
           </Button>
 
           {currentPhase === "completed" && (
             <p className="text-center text-sm text-gray-400 mt-6">
-              Recording complete — redirecting to upload…
+              {t("recording.completeRedirecting")}
             </p>
           )}
         </div>
@@ -581,9 +581,9 @@ const Recording = () => {
       <AlertDialog open={showStopConfirm} onOpenChange={setShowStopConfirm}>
         <AlertDialogContent className="bg-gray-900 border-gray-700 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Stop recording?</AlertDialogTitle>
+            <AlertDialogTitle>{t("recording.stopQuestion")}</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">
-              Saved episodes are kept. The session will end and you'll be taken to the upload page.
+              {t("recording.stopConfirmDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

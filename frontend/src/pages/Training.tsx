@@ -559,11 +559,11 @@ const MonitoringMode: React.FC<{ jobId: string }> = ({ jobId }) => {
                 <h1 className="text-xl font-semibold text-white">{job.name}</h1>
                 {job.runner === "hf_cloud" ? (
                   <span className="text-xs px-2 py-0.5 rounded bg-amber-900/40 text-amber-200 border border-amber-700">
-                    HF · {job.hf_flavor ?? "cloud"}
+                    HF · {job.hf_flavor ?? t("jobs.cloud")}
                   </span>
                 ) : (
                   <span className="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-200 border border-slate-600">
-                    Local
+                    {t("landing.local")}
                   </span>
                 )}
                 {job.runner === "hf_cloud" && job.hf_repo_id && job.state === "done" && (
@@ -573,7 +573,7 @@ const MonitoringMode: React.FC<{ jobId: string }> = ({ jobId }) => {
                     rel="noreferrer"
                     className="text-xs text-amber-300 hover:text-amber-200 underline"
                   >
-                    View on Hub ↗
+                    {t("jobs.viewOnHub")} ↗
                   </a>
                 )}
                 {job.wandb_run_url && (
@@ -583,7 +583,7 @@ const MonitoringMode: React.FC<{ jobId: string }> = ({ jobId }) => {
                     rel="noreferrer"
                     className="text-xs text-yellow-300 hover:text-yellow-200 underline"
                   >
-                    View on W&B ↗
+                    {t("jobs.viewOnWandb")} ↗
                   </a>
                 )}
               </div>

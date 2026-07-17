@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useInstallExtra } from "@/hooks/useInstallExtra";
+import { useTranslation } from "react-i18next";
 import {
   InstallProgress,
   InstallTitleIcon,
@@ -21,6 +22,7 @@ interface Props {
 }
 
 const WandbInstallDialog: React.FC<Props> = ({ open, onOpenChange, installHint }) => {
+  const { t } = useTranslation();
   const install = useInstallExtra("system/wandb-extra", open);
 
   return (
@@ -29,10 +31,10 @@ const WandbInstallDialog: React.FC<Props> = ({ open, onOpenChange, installHint }
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-white">
             <InstallTitleIcon state={install.state} />
-            {installTitle(install.state, "Weights & Biases Not Installed")}
+            {installTitle(install.state, t("training.wandbNotInstalled"), t)}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            Install the wandb package to enable W&amp;B logging.
+            {t("training.wandbInstallDescription")}
           </DialogDescription>
         </DialogHeader>
 
@@ -46,18 +48,17 @@ const WandbInstallDialog: React.FC<Props> = ({ open, onOpenChange, installHint }
             onRetry={install.handleRetry}
             installHint={installHint}
             packageName="wandb"
-            idleTitle="Weights &amp; Biases Not Installed"
+            idleTitle={t("training.wandbNotInstalled")}
             idleDescription={
               <>
-                Enabling W&amp;B logging requires the{" "}
+                {t("training.wandbDescriptionBefore")}{" "}
                 <code className="px-1 py-0.5 rounded bg-slate-900 text-sky-300">
                   wandb
                 </code>{" "}
-                package, which isn't installed in this environment. Install it
-                to log this run to W&amp;B.
+                {t("training.wandbDescriptionAfter")}
               </>
             }
-            doneDescription={<RestartInstructions purpose="W&amp;B logging" />}
+            doneDescription={<RestartInstructions purpose={t("training.wandbLogging")} />}
           />
         </div>
       </DialogContent>

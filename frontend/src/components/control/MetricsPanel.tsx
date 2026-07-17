@@ -2,6 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Camera, MicOff } from 'lucide-react';
+import { useTranslation } from "react-i18next";
 
 interface MetricsPanelProps {
   activeTab: 'SENSORS' | 'MOTORS';
@@ -24,6 +25,7 @@ const MetricsPanel: React.FC<MetricsPanelProps> = ({
   isVoiceActive,
   micLevel,
 }) => {
+  const { t } = useTranslation();
   const sensorVideoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -47,7 +49,7 @@ const MetricsPanel: React.FC<MetricsPanelProps> = ({
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
           >
-            MOTORS
+            {t("teleoperation.motors")}
           </button>
           <button
             onClick={() => setActiveTab('SENSORS')}
@@ -57,7 +59,7 @@ const MetricsPanel: React.FC<MetricsPanelProps> = ({
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
           >
-            SENSORS
+            {t("teleoperation.sensors")}
           </button>
         </div>
 
@@ -67,7 +69,7 @@ const MetricsPanel: React.FC<MetricsPanelProps> = ({
             <div className="space-y-4">
               {/* Webcam Feed */}
               <div className="border border-gray-800 rounded p-2 flex flex-col h-64">
-                <h3 className="text-sm text-white font-medium mb-2">Live Camera Feed</h3>
+                <h3 className="text-sm text-white font-medium mb-2">{t("teleoperation.liveCameraFeed")}</h3>
                 {hasPermissions ? (
                   <div className="flex-1 bg-black rounded overflow-hidden">
                     <video
@@ -82,7 +84,7 @@ const MetricsPanel: React.FC<MetricsPanelProps> = ({
                   <div className="flex-1 flex items-center justify-center bg-black rounded">
                     <div className="text-center">
                       <Camera className="w-12 h-12 mx-auto text-gray-500 mb-2" />
-                      <p className="text-gray-400">Camera permission not granted.</p>
+                      <p className="text-gray-400">{t("teleoperation.cameraPermissionDenied")}</p>
                     </div>
                   </div>
                 )}
@@ -91,7 +93,7 @@ const MetricsPanel: React.FC<MetricsPanelProps> = ({
               {/* Mic Detection & Other Sensors */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="border border-gray-800 rounded p-2 flex flex-col justify-center min-h-[120px]">
-                    <h3 className="text-sm text-center text-white font-medium mb-2">Voice Activity</h3>
+                    <h3 className="text-sm text-center text-white font-medium mb-2">{t("teleoperation.voiceActivity")}</h3>
                   {hasPermissions ? (
                     <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center">
                       <div className="flex items-end h-10 gap-px w-full justify-center">
@@ -107,14 +109,14 @@ const MetricsPanel: React.FC<MetricsPanelProps> = ({
                         })}
                       </div>
                       <p className="text-xs text-gray-300">
-                        {isVoiceActive ? "Voice commands active" : "Voice commands muted"}
+                        {isVoiceActive ? t("teleoperation.voiceCommandsActive") : t("teleoperation.voiceCommandsMuted")}
                       </p>
                     </div>
                   ) : (
                     <div className="flex-1 flex items-center justify-center bg-black rounded">
                       <div className="text-center">
                         <MicOff className="w-8 h-8 mx-auto text-gray-500 mb-2" />
-                        <p className="text-gray-400">Microphone permission not granted.</p>
+                        <p className="text-gray-400">{t("teleoperation.microphonePermissionDenied")}</p>
                       </div>
                     </div>
                   )}
@@ -123,7 +125,7 @@ const MetricsPanel: React.FC<MetricsPanelProps> = ({
                 {/* Sensor Charts */}
                 {['sensor3', 'sensor4'].map((sensor, index) => (
                   <div key={sensor} className="border border-gray-800 rounded p-2 flex flex-col h-auto min-h-[120px]">
-                    <h3 className="text-sm text-white font-medium mb-2">Sensor {index + 3}</h3>
+                    <h3 className="text-sm text-white font-medium mb-2">{t("teleoperation.sensor", { number: index + 3 })}</h3>
                     <ResponsiveContainer width="100%" height="90%">
                       <LineChart data={sensorData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -155,7 +157,7 @@ const MetricsPanel: React.FC<MetricsPanelProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {['motor1', 'motor2', 'motor3', 'motor4', 'motor5', 'motor6'].map((motor, index) => (
                 <div key={motor} className="border border-gray-800 rounded p-2 h-40">
-                  <h3 className="text-sm text-white font-medium mb-2">Motor {index + 1}</h3>
+                  <h3 className="text-sm text-white font-medium mb-2">{t("teleoperation.motor", { number: index + 1 })}</h3>
                   <ResponsiveContainer width="100%" height="80%">
                     <LineChart data={motorData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#374151" />

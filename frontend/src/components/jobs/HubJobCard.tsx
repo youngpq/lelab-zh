@@ -11,20 +11,21 @@ import {
   Clock,
   HelpCircle,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   job: HubJob;
 }
 
-function relativeTime(iso: string | null): string {
+function relativeTime(iso: string | null, t: (key: string, options?: Record<string, unknown>) => string): string {
   if (!iso) return "—";
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return "—";
-  const diff = Math.max(0, (Date.now() - t) / 1000);
-  if (diff < 60) return `${Math.floor(diff)}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
+  const timestamp = Date.parse(iso);
+  if (Number.isNaN(timestamp)) return "—";
+  const diff = Math.max(0, (Date.now() - timestamp) / 1000);
+  if (diff < 60) return t("jobs.secondsAgo", { count: Math.floor(diff) });
+  if (diff < 3600) return t("jobs.minutesAgo", { count: Math.floor(diff / 60) });
+  if (diff < 86400) return t("jobs.hoursAgo", { count: Math.floor(diff / 3600) });
+  return t("jobs.daysAgo", { count: Math.floor(diff / 86400) });
 }
 
 interface StagePresentation {
@@ -46,9 +47,10 @@ const stagePresentation: Record<string, StagePresentation> = {
 };
 
 const HubJobCard: React.FC<Props> = ({ job }) => {
+  const { t } = useTranslation();
   const stage = job.status?.stage?.toUpperCase() ?? "";
   const present: StagePresentation = stagePresentation[stage] ?? {
-    label: stage || "Unknown",
+    label: stage || t("common.unknown"),
     color: "text-slate-400",
     Icon: HelpCircle,
   };
@@ -72,7 +74,7 @@ const HubJobCard: React.FC<Props> = ({ job }) => {
             size="icon"
             asChild
             className="h-7 w-7 text-slate-400 hover:text-white"
-            aria-label="View on Hub"
+            aria-label={t("jobs.viewOnHub")}
           >
             <a
               href={job.url}
@@ -89,7 +91,7 @@ const HubJobCard: React.FC<Props> = ({ job }) => {
             {title}
           </div>
           <div className="text-xs text-slate-400 truncate">
-            {job.flavor ?? "—"} · {relativeTime(job.created_at)}
+            {job.flavor ?? "—"} · {relativeTime(job.created_at, t)}
             {job.owner ? ` · ${job.owner}` : ""}
           </div>
         </div>

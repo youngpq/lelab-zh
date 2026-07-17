@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useInstallExtra } from "@/hooks/useInstallExtra";
+import { useTranslation } from "react-i18next";
 import {
   InstallProgress,
   InstallTitleIcon,
@@ -13,6 +14,7 @@ interface Props {
 }
 
 const TrainingExtraGate: React.FC<Props> = ({ installHint }) => {
+  const { t } = useTranslation();
   const install = useInstallExtra("system/training-extra");
 
   return (
@@ -21,7 +23,7 @@ const TrainingExtraGate: React.FC<Props> = ({ installHint }) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-white">
             <InstallTitleIcon state={install.state} />
-            {installTitle(install.state, "Training Extra Not Installed")}
+            {installTitle(install.state, t("training.extraNotInstalled"), t)}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -34,18 +36,17 @@ const TrainingExtraGate: React.FC<Props> = ({ installHint }) => {
             onRetry={install.handleRetry}
             installHint={installHint}
             packageName="accelerate"
-            idleTitle="Training Extra Not Installed"
+            idleTitle={t("training.extraNotInstalled")}
             idleDescription={
               <>
-                Training requires the{" "}
+                {t("training.extraDescriptionBefore")}{" "}
                 <code className="px-1 py-0.5 rounded bg-slate-900 text-sky-300">
                   accelerate
                 </code>{" "}
-                package, which isn't installed in this environment. Install it
-                to enable the Training page.
+                {t("training.extraDescriptionAfter")}
               </>
             }
-            doneDescription={<RestartInstructions purpose="training" />}
+            doneDescription={<RestartInstructions purpose={t("training.training")} />}
           />
         </CardContent>
       </Card>

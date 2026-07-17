@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { DatasetItem } from "@/lib/replayApi";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   datasets: DatasetItem[];
@@ -17,6 +18,7 @@ interface Props {
 const REPO_ID_RE = /^[\w.\-]+\/[\w.\-]+$/;
 
 const DatasetCombobox: React.FC<Props> = ({ datasets, loading, value, onChange }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
   const [customMode, setCustomMode] = React.useState(false);
   const [customValue, setCustomValue] = React.useState("");
@@ -41,8 +43,8 @@ const DatasetCombobox: React.FC<Props> = ({ datasets, loading, value, onChange }
     >
       <Check className={cn("mr-2 h-4 w-4", value === d.repo_id ? "opacity-100" : "opacity-0")} />
       <span className="flex-1 truncate">{d.repo_id}</span>
-      {d.source === "both" && <span className="text-xs text-gray-400 mr-2">on Hub</span>}
-      {d.private && <span className="text-xs text-amber-400">private</span>}
+      {d.source === "both" && <span className="text-xs text-gray-400 mr-2">{t("landing.onHub")}</span>}
+      {d.private && <span className="text-xs text-amber-400">{t("landing.private")}</span>}
     </CommandItem>
   );
 
@@ -58,10 +60,10 @@ const DatasetCombobox: React.FC<Props> = ({ datasets, loading, value, onChange }
           className="bg-gray-800 border-gray-600 text-white"
         />
         <Button onClick={submitCustom} disabled={!REPO_ID_RE.test(customValue.trim())}>
-          Use
+          {t("common.use")}
         </Button>
         <Button variant="ghost" onClick={() => setCustomMode(false)}>
-          Cancel
+          {t("common.cancel")}
         </Button>
       </div>
     );
@@ -76,17 +78,17 @@ const DatasetCombobox: React.FC<Props> = ({ datasets, loading, value, onChange }
           aria-expanded={open}
           className="w-full justify-between bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
         >
-          {value ?? (loading ? "Loading datasets…" : "Select a dataset…")}
+          {value ?? (loading ? t("landing.loadingDatasets") : t("landing.selectOrCreateDataset"))}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-gray-800 border-gray-700" align="start">
         <Command className="bg-gray-800 text-white">
-          <CommandInput placeholder="Search datasets…" className="text-white" />
+          <CommandInput placeholder={t("landing.searchDatasets")} className="text-white" />
           <CommandList>
-            <CommandEmpty>{loading ? "Loading…" : "No datasets."}</CommandEmpty>
+            <CommandEmpty>{loading ? t("common.loading") : t("landing.noDatasets")}</CommandEmpty>
             {localDatasets.length > 0 && (
-              <CommandGroup heading="Local">
+              <CommandGroup heading={t("landing.local")}>
                 {localDatasets.map(renderItem)}
               </CommandGroup>
             )}
@@ -101,7 +103,7 @@ const DatasetCombobox: React.FC<Props> = ({ datasets, loading, value, onChange }
                 className="text-purple-300 aria-selected:bg-gray-700"
               >
                 <Pencil className="mr-2 h-4 w-4" />
-                Use custom repo ID…
+                {t("landing.useCustomRepository")}
               </CommandItem>
             </CommandGroup>
           </CommandList>

@@ -9,6 +9,7 @@ import React, {
 
 import { processDroppedFiles } from "@/lib/UrdfDragAndDrop";
 import { useUrdf } from "@/hooks/useUrdf";
+import { useTranslation } from "react-i18next";
 
 export type DragAndDropContextType = {
   isDragging: boolean;
@@ -27,6 +28,7 @@ interface DragAndDropProviderProps {
 export const DragAndDropProvider: React.FC<DragAndDropProviderProps> = ({
   children,
 }) => {
+  const { t } = useTranslation();
   const [isDragging, setIsDragging] = useState(false);
 
   // Get the Urdf context
@@ -101,9 +103,9 @@ export const DragAndDropProvider: React.FC<DragAndDropProviderProps> = ({
       {isDragging && (
         <div className="fixed inset-0 bg-primary/10 pointer-events-none z-50 flex items-center justify-center">
           <div className="bg-background p-8 rounded-lg shadow-lg text-center">
-            <div className="text-3xl font-bold mb-4">Drop Urdf Files Here</div>
+            <div className="text-3xl font-bold mb-4">{t("urdf.dropFiles")}</div>
             <p className="text-muted-foreground">
-              Release to upload your robot model
+              {t("urdf.releaseToUpload")}
             </p>
           </div>
         </div>

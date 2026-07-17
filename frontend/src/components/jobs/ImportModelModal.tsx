@@ -68,7 +68,7 @@ const ImportModelModal: React.FC<Props> = ({ open, onOpenChange, onImported }) =
               id="source"
               value={source}
               onChange={(e) => setSource(e.target.value)}
-              placeholder="/path/to/pretrained_model  or  user/my-policy"
+              placeholder={t("jobs.modelSourcePlaceholder")}
               className="bg-gray-800 border-gray-700 text-white"
             />
           </div>

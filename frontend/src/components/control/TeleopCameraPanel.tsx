@@ -49,14 +49,14 @@ const TeleopCameraPanel: React.FC = () => {
               size="icon"
               onClick={() => setReloadKey((k) => k + 1)}
               className="h-9 w-9 text-gray-400 hover:text-white flex-shrink-0"
-              title="Retry camera feeds (e.g. after reconnecting a camera)"
-              aria-label="Retry camera feeds"
+              title={t("teleoperation.retryCameraFeeds")}
+              aria-label={t("teleoperation.retryCameraFeeds")}
             >
               <RefreshCw className="w-4 h-4" />
             </Button>
           )}
           <Label htmlFor="teleop-camera-toggle" className="text-sm text-gray-400">
-            {enabled ? "On" : "Off"}
+            {enabled ? t("teleoperation.on") : t("teleoperation.off")}
           </Label>
           <Switch
             id="teleop-camera-toggle"
@@ -80,13 +80,13 @@ const TeleopCameraPanel: React.FC = () => {
         ) : (
           <p className="text-sm text-gray-500">
             {robotsLoading
-              ? "Loading robot..."
-              : "No cameras configured for this robot. Add them during calibration to see live feeds here."}
+              ? t("teleoperation.loadingRobot")
+              : t("teleoperation.noConfiguredCameras")}
           </p>
         )
       ) : (
         <p className="text-sm text-gray-500">
-          Turn on to watch your cameras while you teleoperate.
+          {t("teleoperation.cameraWatchHint")}
         </p>
       )}
     </div>

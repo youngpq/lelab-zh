@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -25,14 +26,18 @@ interface InstallProgressProps {
   doneDescription: React.ReactNode;
 }
 
-export function installTitle(state: InstallState, idleTitle: string): string {
+export function installTitle(
+  state: InstallState,
+  idleTitle: string,
+  t: (key: string) => string,
+): string {
   switch (state) {
     case "done":
-      return "Install Complete";
+      return t("training.installComplete");
     case "error":
-      return "Install Failed";
+      return t("training.installFailedTitle");
     case "installing":
-      return "Installing…";
+      return t("training.installing");
     default:
       return idleTitle;
   }
@@ -59,15 +64,16 @@ export const InstallProgress: React.FC<InstallProgressProps> = ({
   doneDescription,
 }) => {
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(installHint);
-      toast({ title: "Copied", description: installHint });
+      toast({ title: t("training.installCopied"), description: installHint });
     } catch {
       toast({
-        title: "Copy failed",
-        description: "Select the command and copy manually.",
+        title: t("training.installCopyFailed"),
+        description: t("training.installCopyManually"),
         variant: "destructive",
       });
     }
@@ -87,7 +93,7 @@ export const InstallProgress: React.FC<InstallProgressProps> = ({
               size="icon"
               onClick={handleCopy}
               className="text-slate-400 hover:text-white"
-              aria-label="Copy install command"
+              aria-label={t("training.copyInstallCommand")}
             >
               <Copy className="w-4 h-4" />
             </Button>
@@ -96,18 +102,18 @@ export const InstallProgress: React.FC<InstallProgressProps> = ({
             onClick={onInstall}
             className="bg-green-500 hover:bg-green-600 text-white font-semibold"
           >
-            Install Now
+            {t("training.installNow")}
           </Button>
         </>
       )}
 
       {state === "installing" && (
         <p className="text-slate-300">
-          Installing{" "}
+          {t("training.installing")} {" "}
           <code className="px-1 py-0.5 rounded bg-slate-900 text-sky-300">
             {packageName}
           </code>
-          . This usually takes about 10 seconds.
+          . {t("training.installDurationHint")}
         </p>
       )}
 
@@ -117,12 +123,12 @@ export const InstallProgress: React.FC<InstallProgressProps> = ({
 
       {state === "error" && (
         <>
-          <p className="text-red-300">{error || "Install failed."}</p>
+          <p className="text-red-300">{error || t("training.installFailed")}</p>
           <Button
             onClick={onRetry}
             className="bg-slate-700 hover:bg-slate-600 text-white"
           >
-            Try again
+            {t("common.retry")}
           </Button>
         </>
       )}
@@ -141,36 +147,35 @@ export const InstallProgress: React.FC<InstallProgressProps> = ({
   );
 };
 
-export const RestartInstructions: React.FC<{ purpose: string }> = ({
-  purpose,
-}) => (
-  <>
+export const RestartInstructions: React.FC<{ purpose: string }> = ({ purpose }) => {
+  const { t } = useTranslation();
+  return <>
     <p>
-      Install complete. Restart{" "}
+      {t("training.restartIntro", { purpose })}{" "}
       <code className="px-1 py-0.5 rounded bg-slate-900 text-sky-300">
         lelab
       </code>{" "}
-      to enable {purpose}:
+      {t("training.restartToEnable", { purpose })}
     </p>
     <ol className="list-decimal list-inside space-y-2 pl-1">
       <li>
-        Press{" "}
+        {t("training.restartStepOne")}{" "}
         <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-600 text-xs font-mono text-slate-200">
           Ctrl+C
         </kbd>{" "}
-        in the terminal running{" "}
+        {t("training.restartTerminal")}{" "}
         <code className="px-1 py-0.5 rounded bg-slate-900 text-sky-300">
           lelab
         </code>
-        .
+        {t("common.period")}
       </li>
       <li>
-        Run{" "}
+        {t("training.restartStepTwo")}{" "}
         <code className="px-1 py-0.5 rounded bg-slate-900 text-sky-300">
           lelab
         </code>{" "}
-        again.
+        {t("training.restartAgain")}
       </li>
     </ol>
-  </>
-);
+  </>;
+};

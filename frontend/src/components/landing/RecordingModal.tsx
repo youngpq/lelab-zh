@@ -140,7 +140,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
                         e.target.value.replace(/[^A-Za-z0-9._-]/g, "_")
                       )
                     }
-                    placeholder="my_dataset"
+                    placeholder={t("landing.datasetNamePlaceholder")}
                     className="bg-gray-800 border-gray-700 text-white"
                   />
                   <p className="text-xs text-gray-500">
@@ -171,7 +171,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
                     id="singleTask"
                     value={singleTask}
                     onChange={(e) => setSingleTask(e.target.value)}
-                    placeholder="e.g., pick up the red block and place it on the blue square"
+                    placeholder={t("recording.taskPlaceholder")}
                     className="bg-gray-800 border-gray-700 text-white"
                   />
                 </div>

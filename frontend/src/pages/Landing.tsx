@@ -159,16 +159,15 @@ const Landing = () => {
     if (cameras.length > 0 && releaseStreamsRef.current) {
       console.log("🔓 Releasing camera streams before starting recording...");
       toast({
-        title: "Preparing Camera Resources",
-        description: `Releasing ${cameras.length} camera stream(s) for recording...`,
+        title: t("landing.preparingCameraResources"),
+        description: t("landing.releasingCameraStreams", { count: cameras.length }),
       });
       releaseStreamsRef.current();
       await new Promise((resolve) => setTimeout(resolve, 500));
       console.log("✅ Camera streams released, proceeding with recording...");
       toast({
-        title: "Camera Resources Ready",
-        description:
-          "Camera streams released successfully. Starting recording...",
+        title: t("landing.cameraResourcesReady"),
+        description: t("landing.cameraStreamsReleased"),
       });
     }
 

@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface PortDetectionButtonProps {
   onClick: () => void;
@@ -13,6 +14,8 @@ const PortDetectionButton: React.FC<PortDetectionButtonProps> = ({
   robotType,
   className = "",
 }) => {
+  const { t } = useTranslation();
+  const robotLabel = robotType ? t(`calibration.${robotType}`) : t("common.robot");
   return (
     <Button
       type="button"
@@ -27,10 +30,10 @@ const PortDetectionButton: React.FC<PortDetectionButtonProps> = ({
         transition-all duration-200
         ${className}
       `}
-      title={`Find ${robotType || "robot"} port automatically`}
+      title={t("portDetection.findTitle", { robotType: robotLabel })}
     >
       <Search className="w-3 h-3 mr-1" />
-      Find
+      {t("portDetection.find")}
     </Button>
   );
 };

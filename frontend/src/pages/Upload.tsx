@@ -419,7 +419,7 @@ const Upload = () => {
                       id="tags"
                       value={tagsInput}
                       onChange={(e) => setTagsInput(e.target.value)}
-                      placeholder="robotics, lerobot, manipulation"
+                      placeholder={t("upload.tagsPlaceholder")}
                       className="bg-gray-800 border-gray-600 text-white"
                     />
                     <p className="text-sm text-gray-500 mt-1">
