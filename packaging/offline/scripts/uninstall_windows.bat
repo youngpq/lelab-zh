@@ -2,6 +2,13 @@
 chcp 65001 >nul
 title LeLab-zh 卸载
 set "INSTALL_DIR=%LOCALAPPDATA%\LeLab-zh"
+set "LOCATION_FILE=%LOCALAPPDATA%\LeLab-zh-install-dir.txt"
+if not exist "%LOCATION_FILE%" goto :location_ready
+set /p "SAVED_INSTALL_DIR="<"%LOCATION_FILE%"
+if not defined SAVED_INSTALL_DIR goto :location_ready
+set "INSTALL_DIR=%SAVED_INSTALL_DIR%"
+
+:location_ready
 
 echo ============================================================
 echo   LeLab-zh 卸载程序
@@ -31,9 +38,11 @@ goto :done
 :remove
 echo [卸载] 删除安装目录...
 rmdir /s /q "%INSTALL_DIR%"
+del "%LOCATION_FILE%" 2>nul
 echo [完成] 安装目录已删除。
 
 :done
+del "%LOCATION_FILE%" 2>nul
 echo.
 echo ============================================================
 echo   LeLab-zh 已卸载。

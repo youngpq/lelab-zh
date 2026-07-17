@@ -28,9 +28,49 @@ if [ "$ARCH" != "arm64" ]; then
 fi
 
 # ============================================================
-# 3. 检查可用磁盘空间（至少 8GB = 8589934592 字节）
+# 3. 选择安装目录并检查可用磁盘空间（至少 8GB = 8589934592 字节）
 # ============================================================
-FREE_KB="$(df -k "$HOME" | tail -1 | awk '{print $4}')"
+LOCATION_FILE="$HOME/.lelab-zh-install-dir"
+DEFAULT_INSTALL_DIR="$HOME/Library/Application Support/LeLab-zh"
+INSTALL_DIR="$DEFAULT_INSTALL_DIR"
+if [ -f "$LOCATION_FILE" ]; then
+    SAVED_INSTALL_DIR="$(cat "$LOCATION_FILE")"
+    if [ -n "$SAVED_INSTALL_DIR" ]; then
+        INSTALL_DIR="$SAVED_INSTALL_DIR"
+    fi
+fi
+echo "[信息] 默认安装位置：$INSTALL_DIR"
+read -r -p "如需安装到其他本地目录，请输入完整路径；直接按回车使用默认位置：" CUSTOM_INSTALL_DIR
+if [ -n "$CUSTOM_INSTALL_DIR" ]; then
+    INSTALL_DIR="$CUSTOM_INSTALL_DIR"
+fi
+case "$INSTALL_DIR" in
+    ~/*) INSTALL_DIR="$HOME/${INSTALL_DIR#~/}" ;;
+esac
+case "$INSTALL_DIR" in
+    /*) ;;
+    *)
+        echo "[错误] 安装位置必须是本机绝对路径。"
+        read -p "按回车键退出..."
+        exit 1
+        ;;
+esac
+INSTALL_DIR="${INSTALL_DIR%/}"
+case "$INSTALL_DIR" in
+    ""|"$PACKAGE_ROOT"|"$PACKAGE_ROOT"/*)
+        echo "[错误] 不能安装到解压后的安装包目录。"
+        read -p "按回车键退出..."
+        exit 1
+        ;;
+esac
+if [ "$INSTALL_DIR" = "/" ]; then
+    echo "[错误] 请选择一个具体的安装文件夹。"
+    read -p "按回车键退出..."
+    exit 1
+fi
+INSTALL_PARENT="$(dirname "$INSTALL_DIR")"
+mkdir -p "$INSTALL_PARENT"
+FREE_KB="$(df -k "$INSTALL_PARENT" | tail -1 | awk '{print $4}')"
 if [ -n "$FREE_KB" ] && [ "$FREE_KB" -lt 8388608 ]; then
     echo "[警告] 可用磁盘空间不足 8GB。建议至少 8GB（推荐 12GB）。"
     read -p "是否继续安装？(y/N) " -n 1 -r
@@ -83,9 +123,8 @@ fi
 echo ""
 
 # ============================================================
-# 6. 创建固定安装目录
+# 6. 创建安装目录
 # ============================================================
-INSTALL_DIR="$HOME/Library/Application Support/LeLab-zh"
 if [ -d "$INSTALL_DIR" ]; then
     echo "[信息] 检测到已有安装: $INSTALL_DIR"
     echo "[信息] 将覆盖安装..."
@@ -171,6 +210,7 @@ echo "[安装] 启动器已创建: $HOME/Applications/LeLab-zh.app"
 # 11. 写版本信息
 # ============================================================
 echo "v0.1.0" > "$INSTALL_DIR/version.txt"
+printf '%s\n' "$INSTALL_DIR" > "$LOCATION_FILE"
 
 # ============================================================
 # 12. 完成提示

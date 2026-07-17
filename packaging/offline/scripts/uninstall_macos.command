@@ -1,6 +1,13 @@
 #!/bin/bash
 # LeLab-zh 卸载 (macOS)
 INSTALL_DIR="$HOME/Library/Application Support/LeLab-zh"
+LOCATION_FILE="$HOME/.lelab-zh-install-dir"
+if [ -f "$LOCATION_FILE" ]; then
+    SAVED_INSTALL_DIR="$(cat "$LOCATION_FILE")"
+    if [ -n "$SAVED_INSTALL_DIR" ]; then
+        INSTALL_DIR="$SAVED_INSTALL_DIR"
+    fi
+fi
 
 echo "============================================================"
 echo "  LeLab-zh 卸载程序"
@@ -35,6 +42,7 @@ rm -f "$HOME/Desktop/启动LeLab.app"
 echo "[卸载] 删除安装目录..."
 if [ -d "$INSTALL_DIR" ]; then
     rm -rf "$INSTALL_DIR"
+    rm -f "$LOCATION_FILE"
     echo "[完成] 安装目录已删除。"
 else
     echo "[信息] 安装目录不存在，无需删除。"

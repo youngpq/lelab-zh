@@ -1,6 +1,13 @@
 #!/bin/bash
 # LeLab-zh 修复安装 (macOS)
 INSTALL_DIR="$HOME/Library/Application Support/LeLab-zh"
+LOCATION_FILE="$HOME/.lelab-zh-install-dir"
+if [ -f "$LOCATION_FILE" ]; then
+    SAVED_INSTALL_DIR="$(cat "$LOCATION_FILE")"
+    if [ -n "$SAVED_INSTALL_DIR" ]; then
+        INSTALL_DIR="$SAVED_INSTALL_DIR"
+    fi
+fi
 
 echo "============================================================"
 echo "  LeLab-zh 修复安装"

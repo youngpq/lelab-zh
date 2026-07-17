@@ -2,6 +2,13 @@
 chcp 65001 >nul
 title LeLab-zh 修复安装
 set "INSTALL_DIR=%LOCALAPPDATA%\LeLab-zh"
+set "LOCATION_FILE=%LOCALAPPDATA%\LeLab-zh-install-dir.txt"
+if not exist "%LOCATION_FILE%" goto :location_ready
+set /p "SAVED_INSTALL_DIR="<"%LOCATION_FILE%"
+if not defined SAVED_INSTALL_DIR goto :location_ready
+set "INSTALL_DIR=%SAVED_INSTALL_DIR%"
+
+:location_ready
 set "BACKUP_DIR=%INSTALL_DIR%\venv.backup"
 
 if exist "%INSTALL_DIR%\wheels" goto :repair
