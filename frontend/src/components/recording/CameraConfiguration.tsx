@@ -269,7 +269,7 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
             <Input
               value={cameraName}
               onChange={(e) => setCameraName(e.target.value)}
-              placeholder="e.g., workspace_cam"
+              placeholder={t("recording.cameraNamePlaceholder")}
               className="bg-gray-800 border-gray-700 text-white"
             />
           </div>
@@ -435,7 +435,7 @@ const CameraPreview: React.FC<CameraPreviewProps> = ({
                       value={FOURCC_AUTO}
                       className="text-white hover:bg-gray-700 text-xs"
                     >
-                      Auto
+                      {t("recording.auto")}
                     </SelectItem>
                     {FOURCC_OPTIONS.map((code) => (
                       <SelectItem
@@ -465,7 +465,7 @@ const CameraPreview: React.FC<CameraPreviewProps> = ({
                       value={BACKEND_DEFAULT}
                       className="text-white hover:bg-gray-700 text-xs"
                     >
-                      Default
+                      {t("recording.default")}
                     </SelectItem>
                     {BACKEND_OPTIONS.map((name) => (
                       <SelectItem

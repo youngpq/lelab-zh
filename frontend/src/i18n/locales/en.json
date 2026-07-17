@@ -113,7 +113,15 @@
     "failedToStop": "Failed to stop calibration",
     "stepCompleted": "Step Completed",
     "stepFailed": "Step Failed",
-    "couldNotCompleteStep": "Could not complete calibration step"
+    "couldNotCompleteStep": "Could not complete calibration step",
+    "attachedCameras": "Attached cameras",
+    "camerasOn": "On",
+    "camerasOff": "Off",
+    "toggleCameras": "Turn cameras on or off",
+    "camerasDisabledTitle": "Cameras are off",
+    "camerasDisabledDescription": "Turn cameras on to scan for connected devices and preview them. The browser may briefly open a camera to read device labels, and configured cameras stay active while previews are visible; your browser will ask for camera permission. Nothing is recorded.",
+    "savedCameras": "{{count}} camera(s) saved to this robot.",
+    "cameraPermission": "You'll be asked to grant camera access."
   },
   "recording": {
     "recording": "RECORDING EPISODE {{episode}}",
@@ -136,6 +144,7 @@
     "loadingCameras": "Loading cameras...",
     "selectCamera": "Select camera",
     "cameraName": "Camera Name",
+    "cameraNamePlaceholder": "e.g., workspace_cam",
     "configuredCameras": "Configured Cameras ({{count}})",
     "noCameras": "No cameras configured. Add a camera to get started.",
     "missingCameraInfo": "Missing Information",

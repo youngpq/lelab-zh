@@ -113,7 +113,15 @@
     "failedToStop": "无法停止校准",
     "stepCompleted": "步骤已完成",
     "stepFailed": "步骤失败",
-    "couldNotCompleteStep": "无法完成校准步骤"
+    "couldNotCompleteStep": "无法完成校准步骤",
+    "attachedCameras": "已连接的摄像头",
+    "camerasOn": "开启",
+    "camerasOff": "关闭",
+    "toggleCameras": "开启或关闭摄像头",
+    "camerasDisabledTitle": "摄像头已关闭",
+    "camerasDisabledDescription": "开启摄像头后扫描已连接的设备并预览画面。浏览器可能会短暂打开摄像头以读取设备标签；预览可见时，已配置的摄像头会保持启用状态。浏览器会请求摄像头权限，但不会录制任何内容。",
+    "savedCameras": "已为此机器人保存 {{count}} 个摄像头。",
+    "cameraPermission": "你需要授予摄像头访问权限。"
   },
   "recording": {
     "recording": "正在录制第 {{episode}} 段",
@@ -136,6 +144,7 @@
     "loadingCameras": "正在加载摄像头…",
     "selectCamera": "选择摄像头",
     "cameraName": "摄像头名称",
+    "cameraNamePlaceholder": "例如：workspace_cam",
     "configuredCameras": "已配置的摄像头（{{count}}）",
     "noCameras": "尚未配置摄像头。请添加摄像头后开始使用。",
     "missingCameraInfo": "缺少信息",

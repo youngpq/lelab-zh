@@ -910,21 +910,23 @@ const Calibration = () => {
             <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle className="flex items-center gap-2 text-slate-200">
                 <Settings className="w-5 h-5 text-blue-400" />
-                Attached cameras
+                {t("calibration.attachedCameras")}
               </CardTitle>
               <div className="flex items-center gap-2">
                 <Label
                   htmlFor="cameras-toggle"
                   className="text-sm text-slate-400 cursor-pointer"
                 >
-                  {camerasActive ? "On" : "Off"}
+                  {camerasActive
+                    ? t("calibration.camerasOn")
+                    : t("calibration.camerasOff")}
                 </Label>
                 <Switch
                   id="cameras-toggle"
                   checked={camerasActive}
                   onCheckedChange={setCamerasActive}
                   className="data-[state=checked]:bg-green-500"
-                  aria-label="Turn cameras on or off"
+                  aria-label={t("calibration.toggleCameras")}
                 />
               </div>
             </CardHeader>
@@ -938,24 +940,21 @@ const Calibration = () => {
                 <div className="rounded-lg border border-slate-700 bg-slate-900/40 p-6 text-center space-y-3">
                   <Camera className="w-10 h-10 mx-auto text-slate-500" />
                   <div className="space-y-1">
-                    <p className="text-slate-200 font-medium">Cameras are off</p>
+                    <p className="text-slate-200 font-medium">
+                      {t("calibration.camerasDisabledTitle")}
+                    </p>
                     <p className="text-sm text-slate-400 max-w-md mx-auto">
-                      Turn cameras on to scan for connected devices and preview
-                      them. The browser may briefly open a camera to read device
-                      labels, and configured cameras stay active while previews
-                      are visible; your browser will ask for camera permission.
-                      Nothing is recorded.
+                      {t("calibration.camerasDisabledDescription")}
                     </p>
                     {cameras.length > 0 && (
                       <p className="text-xs text-slate-500 pt-1">
-                        {cameras.length} camera
-                        {cameras.length === 1 ? "" : "s"} saved to this robot.
+                        {t("calibration.savedCameras", { count: cameras.length })}
                       </p>
                     )}
                   </div>
                   <p className="flex items-center justify-center gap-1.5 text-xs text-slate-500">
                     <ShieldQuestion className="w-3.5 h-3.5" />
-                    You'll be asked to grant camera access.
+                    {t("calibration.cameraPermission")}
                   </p>
                 </div>
               )}
