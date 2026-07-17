@@ -8,13 +8,14 @@ set -euo pipefail
 # 配置
 # ============================================================
 VERSION="0.1.0"
+APP_VERSION="0.1.0.post1"
 TAG="v${VERSION}-zh.1"
 LEROBOT_VERSION="0.6.0"
 LEROBOT_GIT="https://github.com/huggingface/lerobot.git"
 PYTHON_VERSION="3.12"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 BUILD_DIR="$PROJECT_ROOT/build/macos-arm64"
 DIST_DIR="$PROJECT_ROOT/dist/offline/LeLab-zh-macOS-Apple-Silicon-$TAG"
 WHEELS_DIR="$DIST_DIR/wheels"
@@ -48,11 +49,12 @@ mkdir -p "$WHEELS_DIR" "$BUILD_DIR"
 # ============================================================
 echo "[构建] Checkout LeLab-zh 源码..."
 LAB_SRC="$BUILD_DIR/lelab-zh"
-git clone --depth 1 --branch main "$PROJECT_ROOT" "$LAB_SRC" 2>/dev/null || \
-    cp -R "$PROJECT_ROOT" "$LAB_SRC"
+git clone --depth 1 --branch main "$PROJECT_ROOT" "$LAB_SRC"
 cd "$LAB_SRC"
 git lfs install 2>/dev/null || true
-git lfs pull 2>/dev/null || true
+if [ "${LELAB_SKIP_LFS:-0}" != "1" ]; then
+    git lfs pull
+fi
 cd "$PROJECT_ROOT"
 
 # ============================================================
@@ -60,16 +62,22 @@ cd "$PROJECT_ROOT"
 # ============================================================
 echo "[构建] Clone LeRobot v$LEROBOT_VERSION..."
 LEROBOT_SRC="$BUILD_DIR/lerobot"
-rm -rf "$LEROBOT_SRC"
-git clone --depth 1 --branch "v$LEROBOT_VERSION" "$LEROBOT_GIT" "$LEROBOT_SRC"
+if [ -n "${LELAB_LEROBOT_WHEEL:-}" ] && [ -f "$LELAB_LEROBOT_WHEEL" ]; then
+    cp "$LELAB_LEROBOT_WHEEL" "$WHEELS_DIR/"
+    echo "[构建] 使用已构建 lerobot wheel: $(basename "$LELAB_LEROBOT_WHEEL")"
+else
+    rm -rf "$LEROBOT_SRC"
+    git clone --depth 1 --branch "v$LEROBOT_VERSION" "$LEROBOT_GIT" "$LEROBOT_SRC"
 
-echo "[构建] 构建 lerobot wheel..."
-cd "$LEROBOT_SRC"
-uv build --wheel
-LEROBOT_WHEEL=$(ls dist/*.whl | head -1)
-cp "$LEROBOT_WHEEL" "$WHEELS_DIR/"
-echo "[构建] lerobot wheel: $(basename "$LEROBOT_WHEEL")"
-cd "$PROJECT_ROOT"
+    echo "[构建] 构建 lerobot wheel..."
+    cd "$LEROBOT_SRC"
+    uv build --wheel
+    LEROBOT_WHEEL=$(find dist -maxdepth 1 -name 'lerobot-*.whl' -print -quit)
+    [ -n "$LEROBOT_WHEEL" ] || { echo "[错误] 未生成 lerobot wheel"; exit 1; }
+    cp "$LEROBOT_WHEEL" "$WHEELS_DIR/"
+    echo "[构建] lerobot wheel: $(basename "$LEROBOT_WHEEL")"
+    cd "$PROJECT_ROOT"
+fi
 
 # ============================================================
 # 4. 构建 lelab-zh wheel（临时 staging pyproject.toml）
@@ -79,22 +87,41 @@ cd "$LAB_SRC"
 
 # 创建 staging pyproject.toml 并临时替换（uv build 只读 pyproject.toml）
 cp pyproject.toml pyproject.toml.bak
-sed "s|lerobot\[core_scripts,feetech,training\] @ git+https://github.com/huggingface/lerobot.git@v0.6.0|lerobot[core_scripts,feetech,training]==$LEROBOT_VERSION|g" pyproject.toml.bak > pyproject.toml
+restore_pyproject() {
+    if [ -f "$LAB_SRC/pyproject.toml.bak" ]; then
+        mv -f "$LAB_SRC/pyproject.toml.bak" "$LAB_SRC/pyproject.toml"
+    fi
+}
+trap restore_pyproject EXIT
+sed -E "s|^([[:space:]]*)\"lerobot\[core_scripts,feetech,training\].*\",|\\1\"lerobot[core_scripts,feetech,training]==$LEROBOT_VERSION\",|" pyproject.toml.bak > pyproject.toml
+grep -q "lerobot\[core_scripts,feetech,training\]==$LEROBOT_VERSION" pyproject.toml || {
+    echo "[错误] 未能将 lelab-zh 的 lerobot 依赖替换为本地 wheel 版本"
+    exit 1
+}
 
-SETUPTOOLS_SCM_PRETEND_VERSION=$VERSION uv build --wheel
+# setuptools 会复用已有 egg-info 中的依赖元数据；必须清除它，
+# 否则 staging 的 lerobot 替换不会反映到最终 wheel 的 METADATA。
+rm -rf lelab_zh.egg-info build
+SETUPTOOLS_SCM_PRETEND_VERSION=$APP_VERSION uv build --wheel
 
-LELAB_WHEEL=$(ls dist/*.whl | head -1)
+LELAB_WHEEL=$(find dist -maxdepth 1 -name "lelab_zh-${APP_VERSION}-*.whl" -print -quit)
+[ -n "$LELAB_WHEEL" ] || { echo "[错误] 未生成 lelab-zh wheel"; exit 1; }
 cp "$LELAB_WHEEL" "$WHEELS_DIR/"
 echo "[构建] lelab-zh wheel: $(basename "$LELAB_WHEEL")"
 
 # 检查 wheel METADATA 不残留 git URL
-if unzip -p "$LELAB_WHEEL" "*.METADATA" 2>/dev/null | grep -qE "git\+|github\.com/huggingface/lerobot"; then
-    echo "[警告] wheel METADATA 中残留 git URL！"
+if ! unzip -Z1 "$LELAB_WHEEL" | grep -q '/METADATA$'; then
+    echo "[错误] lelab-zh wheel 缺少 METADATA！"
+    exit 1
+fi
+if unzip -p "$LELAB_WHEEL" '*METADATA' 2>/dev/null | grep '^Requires-Dist:' | grep -qE "git\+|github\.com/huggingface/lerobot"; then
+    echo "[错误] wheel METADATA 中残留 git URL！"
+    exit 1
 fi
 
 # 恢复原始 pyproject.toml
-cp pyproject.toml.bak pyproject.toml
-rm -f pyproject.toml.bak
+restore_pyproject
+trap - EXIT
 cd "$PROJECT_ROOT"
 
 # ============================================================
@@ -102,17 +129,32 @@ cd "$PROJECT_ROOT"
 # ============================================================
 echo "[构建] 下载便携 uv..."
 mkdir -p "$UV_DIR"
-curl -L -o "$BUILD_DIR/uv-aarch64-apple-darwin.tar.gz" \
-    "https://github.com/astral-sh/uv/releases/download/0.11.29/uv-aarch64-apple-darwin.tar.gz"
-tar -xzf "$BUILD_DIR/uv-aarch64-apple-darwin.tar.gz" -C "$UV_DIR"
+if [ -n "${LELAB_UV_BINARY:-}" ] && [ -f "$LELAB_UV_BINARY" ]; then
+    cp "$LELAB_UV_BINARY" "$UV_DIR/uv"
+else
+    curl -fL -o "$BUILD_DIR/uv-aarch64-apple-darwin.tar.gz" \
+        "https://github.com/astral-sh/uv/releases/download/0.11.29/uv-aarch64-apple-darwin.tar.gz"
+    tar -xzf "$BUILD_DIR/uv-aarch64-apple-darwin.tar.gz" -C "$BUILD_DIR"
+    cp "$BUILD_DIR/uv-aarch64-apple-darwin/uv" "$UV_DIR/uv"
+    rm -rf "$BUILD_DIR/uv-aarch64-apple-darwin" "$BUILD_DIR/uv-aarch64-apple-darwin.tar.gz"
+fi
 chmod +x "$UV_DIR/uv"
-rm "$BUILD_DIR/uv-aarch64-apple-darwin.tar.gz"
 
 # ============================================================
 # 6. 安装便携 Python 3.12
 # ============================================================
 echo "[构建] 安装便携 Python..."
-uv python install "$PYTHON_VERSION" --python-install-dir "$RUNTIME_DIR"
+uv python install "$PYTHON_VERSION" --install-dir "$RUNTIME_DIR"
+RUNTIME_PYTHON=$(find "$RUNTIME_DIR" -type f -path '*/bin/python3.12' -print -quit)
+[ -n "$RUNTIME_PYTHON" ] || { echo "[错误] 未找到便携 Python"; exit 1; }
+PYTHON_HOME=$(dirname "$(dirname "$RUNTIME_PYTHON")")
+if [ "$PYTHON_HOME" != "$RUNTIME_DIR" ]; then
+    cp -R "$PYTHON_HOME/." "$RUNTIME_DIR/"
+    rm -rf "$PYTHON_HOME"
+fi
+find "$RUNTIME_DIR" -maxdepth 1 -type l -delete
+rm -rf "$RUNTIME_DIR/.temp"
+RUNTIME_PYTHON="$RUNTIME_DIR/bin/python3.12"
 
 # ============================================================
 # 7. 下载所有依赖 wheel
@@ -120,20 +162,34 @@ uv python install "$PYTHON_VERSION" --python-install-dir "$RUNTIME_DIR"
 # uv 0.11+ 已移除 uv pip download，改用 pip download
 echo "[构建] 下载第三方依赖 wheel..."
 LOCK_FILE="$LOCKS_DIR/macos-arm64.requirements.txt"
-python3 -m pip download \
+DOWNLOAD_LOCK="$BUILD_DIR/macos-arm64.download.requirements.txt"
+
+# feetech-servo-sdk 仅发布 sdist，先在打包机上构建 wheel；最终清单使用构建后 hash。
+perl -0pe 's/^feetech-servo-sdk==1\.0\.0.*?(?=^[A-Za-z0-9][A-Za-z0-9_.-]*==|\z)//gms' "$LOCK_FILE" > "$DOWNLOAD_LOCK"
+
+DOWNLOAD_VENV="$BUILD_DIR/download-venv"
+"$UV_DIR/uv" venv "$DOWNLOAD_VENV" --python "$RUNTIME_PYTHON" --seed
+DOWNLOAD_PYTHON="$DOWNLOAD_VENV/bin/python"
+"$DOWNLOAD_PYTHON" -m pip wheel "feetech-servo-sdk==1.0.0" \
+    --no-deps \
+    --wheel-dir "$WHEELS_DIR" \
+    --no-cache-dir
+
+"$DOWNLOAD_PYTHON" -m pip download \
     --only-binary=:all: \
     --require-hashes \
     --find-links "$WHEELS_DIR" \
-    --requirement "$LOCK_FILE" \
+    --requirement "$DOWNLOAD_LOCK" \
     --dest "$WHEELS_DIR" \
     --no-cache-dir
+rm -rf "$DOWNLOAD_VENV"
 
 # ============================================================
 # 8. 验证 macOS torch（无 CUDA，MPS 可用）
 # ============================================================
 echo "[构建] 验证 macOS torch..."
 VENV_DIR="$BUILD_DIR/verify-venv"
-"$UV_DIR/uv" venv "$VENV_DIR" --python "$RUNTIME_DIR/bin/python3.12"
+"$UV_DIR/uv" venv "$VENV_DIR" --python "$RUNTIME_PYTHON"
 "$UV_DIR/uv" pip install --python "$VENV_DIR/bin/python" --offline --no-index --find-links "$WHEELS_DIR" torch
 "$VENV_DIR/bin/python" -c "
 import torch
@@ -156,11 +212,11 @@ echo "[构建] wheels 文件名验证通过。"
 # 9. 复制安装脚本
 # ============================================================
 echo "[构建] 复制安装脚本..."
-cp "$SCRIPTS_SRC/install_macos.command" "$DIST_DIR/"
-cp "$SCRIPTS_SRC/start_macos.command" "$DIST_DIR/"
-cp "$SCRIPTS_SRC/stop_macos.command" "$DIST_DIR/"
-cp "$SCRIPTS_SRC/repair_macos.command" "$DIST_DIR/"
-cp "$SCRIPTS_SRC/uninstall_macos.command" "$DIST_DIR/"
+cp "$SCRIPTS_SRC/install_macos.command" "$DIST_DIR/一键安装.command"
+cp "$SCRIPTS_SRC/start_macos.command" "$DIST_DIR/启动LeLab.command"
+cp "$SCRIPTS_SRC/stop_macos.command" "$DIST_DIR/停止LeLab.command"
+cp "$SCRIPTS_SRC/repair_macos.command" "$DIST_DIR/修复安装.command"
+cp "$SCRIPTS_SRC/uninstall_macos.command" "$DIST_DIR/卸载LeLab.command"
 chmod +x "$DIST_DIR"/*.command
 
 # ============================================================
@@ -168,15 +224,41 @@ chmod +x "$DIST_DIR"/*.command
 # ============================================================
 echo "[构建] 生成 requirements-offline.txt..."
 REQ_FILE="$DIST_DIR/requirements-offline.txt"
-cp "$LOCK_FILE" "$REQ_FILE"
+cp "$DOWNLOAD_LOCK" "$REQ_FILE"
 
 # 添加本地 wheel hash
-for WH in "$WHEELS_DIR"/*.whl; do
+for SPEC in "feetech-servo-sdk:1.0.0:feetech_servo_sdk" "lelab-zh:$APP_VERSION:lelab_zh" "lerobot:$LEROBOT_VERSION:lerobot"; do
+    PACKAGE_NAME="${SPEC%%:*}"
+    REST="${SPEC#*:}"
+    PACKAGE_VERSION="${REST%%:*}"
+    WHEEL_PREFIX="${REST#*:}"
+    WH=$(find "$WHEELS_DIR" -maxdepth 1 -name "${WHEEL_PREFIX}-${PACKAGE_VERSION}-*.whl" -print -quit)
+    [ -n "$WH" ] || { echo "[错误] 未找到本地 wheel: $PACKAGE_NAME $PACKAGE_VERSION"; exit 1; }
     HASH="$(shasum -a 256 "$WH" | awk '{print $1}')"
     echo "" >> "$REQ_FILE"
-    echo "$(basename "$WH") \\" >> "$REQ_FILE"
+    echo "$PACKAGE_NAME==$PACKAGE_VERSION \\" >> "$REQ_FILE"
     echo "    --hash=sha256:$HASH" >> "$REQ_FILE"
 done
+
+# 在全新环境中按最终 requirements 做一次完整离线安装，防止只验证 torch 而漏包。
+echo "[构建] 验证完整离线安装..."
+FULL_VERIFY_VENV="$BUILD_DIR/full-verify-venv"
+"$UV_DIR/uv" venv "$FULL_VERIFY_VENV" --python "$RUNTIME_PYTHON"
+"$UV_DIR/uv" pip install \
+    --python "$FULL_VERIFY_VENV/bin/python" \
+    --offline \
+    --no-index \
+    --find-links "$WHEELS_DIR" \
+    --require-hashes \
+    --requirement "$REQ_FILE"
+"$FULL_VERIFY_VENV/bin/python" -c "import torch, lelab, lerobot; assert torch.version.cuda is None; print('full offline import check: OK')"
+rm -rf "$FULL_VERIFY_VENV"
+
+# README 必须在 SHA256 清单生成前复制
+README_TEMPLATE="$PROJECT_ROOT/packaging/offline/README-离线安装模板.txt"
+if [ -f "$README_TEMPLATE" ]; then
+    cp "$README_TEMPLATE" "$DIST_DIR/README-离线安装.txt"
+fi
 
 # ============================================================
 # 11. 生成 SHA256SUMS.txt
@@ -191,12 +273,12 @@ find "$DIST_DIR" -type f ! -name "SHA256SUMS.txt" | while read -r FILE; do
 done
 
 # ============================================================
-# 12. 复制 README 模板
+# 12. 生成最终 zip（保留可执行权限）
 # ============================================================
-README_TEMPLATE="$PROJECT_ROOT/packaging/offline/README-离线安装模板.txt"
-if [ -f "$README_TEMPLATE" ]; then
-    cp "$README_TEMPLATE" "$DIST_DIR/README-离线安装.txt"
-fi
+echo "[构建] 正在生成最终 zip..."
+ZIP_PATH="$PROJECT_ROOT/dist/offline/LeLab-zh-macOS-Apple-Silicon-$TAG.zip"
+rm -f "$ZIP_PATH"
+ditto -c -k --sequesterRsrc --keepParent "$DIST_DIR" "$ZIP_PATH"
 
 # ============================================================
 # 完成
@@ -204,10 +286,7 @@ fi
 echo ""
 echo "============================================================"
 echo "  构建完成: $DIST_DIR"
+echo "  压缩包: $ZIP_PATH"
 echo "============================================================"
 echo ""
-echo "打包命令（保留可执行权限）："
-echo "  chmod +x $DIST_DIR/*.command $DIST_DIR/uv/uv"
-echo "  ditto -c -k --sequesterRsrc --keepParent \\"
-echo "    $DIST_DIR \\"
-echo "    $PROJECT_ROOT/dist/offline/LeLab-zh-macOS-Apple-Silicon-$TAG.zip"
+echo "下一步: 在干净 Apple Silicon Mac 上断网验收，再复制到 U 盘"

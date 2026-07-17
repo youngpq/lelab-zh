@@ -29,8 +29,9 @@ if exist "%INSTALL_DIR%\venv\Scripts\lelab-zh.exe" (
 
 REM 删除桌面快捷方式
 echo [卸载] 删除桌面快捷方式...
-del "%USERPROFILE%\Desktop\启动LeLab.lnk" 2>nul
-del "%USERPROFILE%\Desktop\启动LeLab-zh.lnk" 2>nul
+for /f "usebackq delims=" %%D in (`powershell -NoProfile -Command "[Environment]::GetFolderPath('Desktop')"`) do set "DESKTOP=%%D"
+del "%DESKTOP%\启动LeLab.lnk" 2>nul
+del "%DESKTOP%\启动LeLab-zh.lnk" 2>nul
 
 REM 删除安装目录
 echo [卸载] 删除安装目录...

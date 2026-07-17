@@ -16,9 +16,8 @@ if "%PACKAGE_ROOT:~-1%"=="\" set "PACKAGE_ROOT=%PACKAGE_ROOT:~0,-1%"
 REM ============================================================
 REM 2. 检查操作系统
 REM ============================================================
-if not defined PROCESSOR_ARCHITEW6432 (
-    if "%PROCESSOR_ARCHITECTURE%"=="AMD64" goto :check_space
-)
+if "%PROCESSOR_ARCHITECTURE%"=="AMD64" goto :check_space
+if "%PROCESSOR_ARCHITEW6432%"=="AMD64" goto :check_space
 echo [错误] 此安装包仅支持 Windows 64 位系统。
 echo        当前架构: %PROCESSOR_ARCHITECTURE%
 echo.
@@ -29,13 +28,13 @@ exit /b 1
 REM ============================================================
 REM 3. 检查可用磁盘空间（至少 30GB = 32212254720 字节）
 REM ============================================================
-for /f "tokens=3" %%A in ('dir %SystemDrive%\ 2^>nul ^| findstr "可用"') do set "FREE_SPACE=%%A"
-if defined FREE_SPACE (
-    REM 简单检查：如果显示 "字节" 则转换
-    echo [检查] 磁盘空间检查通过
-) else (
-    echo [警告] 无法自动检测磁盘空间，请确保 C 盘至少有 30GB 可用空间。
+powershell -NoProfile -Command "$drive=($env:LOCALAPPDATA).Substring(0,1); if ((Get-PSDrive -Name $drive).Free -lt 30GB) { exit 1 }"
+if errorlevel 1 (
+    echo [错误] 安装盘可用空间不足 30GB，请清理空间后重试。
+    pause
+    exit /b 1
 )
+echo [检查] 磁盘空间检查通过
 
 REM ============================================================
 REM 4. 检查是否从已解压目录运行
@@ -91,7 +90,12 @@ REM 6. 校验 SHA256SUMS.txt
 REM ============================================================
 if exist "%PACKAGE_ROOT%\SHA256SUMS.txt" (
     echo [信息] 正在校验文件完整性...
-    certutil -hashfile "%PACKAGE_ROOT%\requirements-offline.txt" SHA256 >nul 2>&1
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "$root=$env:PACKAGE_ROOT; $ok=$true; Get-Content -Encoding UTF8 -LiteralPath (Join-Path $root 'SHA256SUMS.txt') | ForEach-Object { $parts=$_ -split '  ',2; if ($parts.Count -ne 2) { $ok=$false } else { $file=Join-Path $root $parts[1]; if (-not (Test-Path -LiteralPath $file)) { $ok=$false } elseif ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLower() -ne $parts[0].ToLower()) { $ok=$false } } }; if (-not $ok) { exit 1 }"
+    if errorlevel 1 (
+        echo [错误] 安装包校验失败，请重新复制并完整解压安装包。
+        pause
+        exit /b 1
+    )
     echo [信息] 校验完成。
 )
 echo.
@@ -103,6 +107,7 @@ set "INSTALL_DIR=%LOCALAPPDATA%\LeLab-zh"
 if exist "%INSTALL_DIR%" (
     echo [信息] 检测到已有安装: %INSTALL_DIR%
     echo [信息] 将覆盖安装...
+    if exist "%INSTALL_DIR%\venv\Scripts\lelab-zh.exe" "%INSTALL_DIR%\venv\Scripts\lelab-zh.exe" --stop >nul 2>&1
 )
 mkdir "%INSTALL_DIR%" 2>nul
 echo [安装] 安装目录: %INSTALL_DIR%
@@ -111,8 +116,18 @@ REM ============================================================
 REM 8. 拷贝 runtime 和 uv
 REM ============================================================
 echo [安装] 正在复制运行时文件...
+if exist "%INSTALL_DIR%\runtime" rmdir /s /q "%INSTALL_DIR%\runtime"
+if exist "%INSTALL_DIR%\uv" rmdir /s /q "%INSTALL_DIR%\uv"
+if exist "%INSTALL_DIR%\wheels" rmdir /s /q "%INSTALL_DIR%\wheels"
 xcopy "%PACKAGE_ROOT%\runtime" "%INSTALL_DIR%\runtime\" /E /Y /Q >nul
 xcopy "%PACKAGE_ROOT%\uv" "%INSTALL_DIR%\uv\" /E /Y /Q >nul
+xcopy "%PACKAGE_ROOT%\wheels" "%INSTALL_DIR%\wheels\" /E /Y /Q >nul
+copy /Y "%PACKAGE_ROOT%\requirements-offline.txt" "%INSTALL_DIR%\requirements-offline.txt" >nul
+if not exist "%INSTALL_DIR%\runtime\python.exe" (
+    echo [错误] 运行时文件复制失败。
+    pause
+    exit /b 1
+)
 echo [安装] 运行时文件复制完成。
 
 REM ============================================================
@@ -135,9 +150,9 @@ echo [安装] 正在从本地安装依赖（此过程可能需要几分钟）...
   --python "%INSTALL_DIR%\venv\Scripts\python.exe" ^
   --offline ^
   --no-index ^
-  --find-links "%PACKAGE_ROOT%\wheels" ^
+  --find-links "%INSTALL_DIR%\wheels" ^
   --require-hashes ^
-  -r "%PACKAGE_ROOT%\requirements-offline.txt"
+  -r "%INSTALL_DIR%\requirements-offline.txt"
 if %errorlevel% neq 0 (
     echo [错误] 依赖安装失败。请检查安装包是否完整。
     pause
@@ -149,7 +164,7 @@ REM ============================================================
 REM 11. 创建桌面快捷方式
 REM ============================================================
 echo [安装] 正在创建桌面快捷方式...
-set "DESKTOP=%USERPROFILE%\Desktop"
+for /f "usebackq delims=" %%D in (`powershell -NoProfile -Command "[Environment]::GetFolderPath('Desktop')"`) do set "DESKTOP=%%D"
 set "SHORTCUT=%DESKTOP%\启动LeLab.vbs"
 (
 echo Set WshShell = CreateObject("WScript.Shell"^)

@@ -1,4 +1,4 @@
-# LeLab-zh Windows CUDA 离线包构建脚本
+﻿# LeLab-zh Windows CUDA 离线包构建脚本
 # 必须在 Windows x64 机器上运行，需要：Git + LFS + uv + PowerShell + >=50GB 磁盘
 
 $ErrorActionPreference = "Stop"
@@ -7,6 +7,7 @@ $ErrorActionPreference = "Stop"
 # 配置
 # ============================================================
 $VERSION = "0.1.0"
+$APP_VERSION = "0.1.0.post1"
 $TAG = "v$VERSION-zh.1"
 $LEROBOT_VERSION = "0.6.0"
 $LEROBOT_GIT = "https://github.com/huggingface/lerobot.git"
@@ -15,6 +16,7 @@ $PYTHON_VERSION = "3.12"
 
 $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 $PROJECT_ROOT = Split-Path -Parent $SCRIPT_DIR
+$PROJECT_ROOT = Split-Path -Parent $PROJECT_ROOT
 $PROJECT_ROOT = Split-Path -Parent $PROJECT_ROOT
 $BUILD_DIR = Join-Path $PROJECT_ROOT "build\windows-cuda"
 $DIST_DIR = Join-Path $PROJECT_ROOT "dist\offline\LeLab-zh-Windows-CUDA-$TAG"
@@ -42,14 +44,16 @@ New-Item -ItemType Directory -Force -Path $BUILD_DIR | Out-Null
 # ============================================================
 Write-Host "[构建] Checkout LeLab-zh 源码..." -ForegroundColor Yellow
 $LAB_SRC = Join-Path $BUILD_DIR "lelab-zh"
-git clone --depth 1 --branch main "$PROJECT_ROOT" $LAB_SRC 2>$null
-if ($LASTEXITCODE -ne 0) {
-    # 如果已经在本地，直接复制
-    Copy-Item -Recurse $PROJECT_ROOT $LAB_SRC -Exclude @(".git", "build", "dist", "__pycache__")
+$clone = Start-Process -FilePath "git" -ArgumentList @("clone", "--depth", "1", "--branch", "main", $PROJECT_ROOT, $LAB_SRC) -NoNewWindow -Wait -PassThru
+if ($clone.ExitCode -ne 0) {
+    throw "无法创建 LeLab-zh 构建副本"
 }
 Push-Location $LAB_SRC
 git lfs install 2>$null
-git lfs pull 2>$null
+if ($env:LELAB_SKIP_LFS -ne "1") {
+    git lfs pull 2>$null
+    if ($LASTEXITCODE -ne 0) { throw "Git LFS 资源拉取失败" }
+}
 Pop-Location
 
 # ============================================================
@@ -57,16 +61,22 @@ Pop-Location
 # ============================================================
 Write-Host "[构建] Clone LeRobot v$LEROBOT_VERSION..." -ForegroundColor Yellow
 $LEROBOT_SRC = Join-Path $BUILD_DIR "lerobot"
-if (Test-Path $LEROBOT_SRC) { Remove-Item -Recurse -Force $LEROBOT_SRC }
-git clone --depth 1 --branch "v$LEROBOT_VERSION" $LEROBOT_GIT $LEROBOT_SRC
+$LEROBOT_WHEEL_OVERRIDE = $env:LELAB_LEROBOT_WHEEL
+if ($LEROBOT_WHEEL_OVERRIDE -and (Test-Path $LEROBOT_WHEEL_OVERRIDE)) {
+    Copy-Item $LEROBOT_WHEEL_OVERRIDE $WHEELS_DIR
+    Write-Host "[构建] 使用已构建 lerobot wheel: $([System.IO.Path]::GetFileName($LEROBOT_WHEEL_OVERRIDE))" -ForegroundColor Green
+} else {
+    if (Test-Path $LEROBOT_SRC) { Remove-Item -Recurse -Force $LEROBOT_SRC }
+    git clone --depth 1 --branch "v$LEROBOT_VERSION" $LEROBOT_GIT $LEROBOT_SRC
 
-Write-Host "[构建] 构建 lerobot wheel..." -ForegroundColor Yellow
-Push-Location $LEROBOT_SRC
-uv build --wheel
-$LEROBOT_WHEEL = Get-ChildItem dist\*.whl | Select-Object -First 1
-Copy-Item $LEROBOT_WHEEL.FullName $WHEELS_DIR
-Write-Host "[构建] lerobot wheel: $($LEROBOT_WHEEL.Name)" -ForegroundColor Green
-Pop-Location
+    Write-Host "[构建] 构建 lerobot wheel..." -ForegroundColor Yellow
+    Push-Location $LEROBOT_SRC
+    uv build --wheel
+    $LEROBOT_WHEEL = Get-ChildItem dist\*.whl | Select-Object -First 1
+    Copy-Item $LEROBOT_WHEEL.FullName $WHEELS_DIR
+    Write-Host "[构建] lerobot wheel: $($LEROBOT_WHEEL.Name)" -ForegroundColor Green
+    Pop-Location
+}
 
 # ============================================================
 # 4. 构建 lelab-zh wheel（临时 staging pyproject.toml）
@@ -75,36 +85,52 @@ Write-Host "[构建] 构建 lelab-zh wheel..." -ForegroundColor Yellow
 Push-Location $LAB_SRC
 
 # 创建 staging pyproject.toml：替换 lerobot git 依赖为版本锁定
-$PYPROJECT = Get-Content pyproject.toml -Raw
-$PYPROJECT = $PYPROJECT -replace 'lerobot\[core_scripts,feetech,training\] @ git\+https://github\.com/huggingface/lerobot\.git@v0\.6\.0', "lerobot[core_scripts,feetech,training]==$LEROBOT_VERSION"
+$PYPROJECT = Get-Content pyproject.toml -Raw -Encoding UTF8
+$PYPROJECT = [regex]::Replace(
+    $PYPROJECT,
+    '(?m)^(\s*)"lerobot\[core_scripts,feetech,training\].*",\s*$',
+    ('$1"lerobot[core_scripts,feetech,training]==' + $LEROBOT_VERSION + '",')
+)
+if ($PYPROJECT -notmatch [regex]::Escape("lerobot[core_scripts,feetech,training]==$LEROBOT_VERSION")) {
+    throw "未能将 lelab-zh 的 lerobot 依赖替换为本地 wheel 版本"
+}
 # uv build 只读 pyproject.toml，必须临时替换
 Copy-Item pyproject.toml pyproject.toml.bak
-Set-Content pyproject.toml $PYPROJECT
+[System.IO.File]::WriteAllText("pyproject.toml", $PYPROJECT, (New-Object System.Text.UTF8Encoding($false)))
 
 # 用替换后的 pyproject.toml 构建
-$env:SETUPTOOLS_SCM_PRETEND_VERSION = $VERSION
-uv build --wheel
+$env:SETUPTOOLS_SCM_PRETEND_VERSION = $APP_VERSION
+$LELAB_WHEEL = $null
+try {
+    # setuptools 会复用已有 egg-info 中的依赖元数据；必须清除它，
+    # 否则 staging 的 lerobot 替换不会反映到最终 wheel 的 METADATA。
+    Remove-Item lelab_zh.egg-info -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item build -Recurse -Force -ErrorAction SilentlyContinue
+    uv build --wheel
+    $LELAB_WHEEL = Get-ChildItem "dist\lelab_zh-$APP_VERSION-*.whl" | Select-Object -First 1
+} finally {
+    Copy-Item pyproject.toml.bak pyproject.toml -Force
+    Remove-Item pyproject.toml.bak -Force
+}
 
-$LELAB_WHEEL = Get-ChildItem dist\*.whl | Select-Object -First 1
+if (-not $LELAB_WHEEL) { throw "未生成 lelab-zh wheel" }
 Copy-Item $LELAB_WHEEL.FullName $WHEELS_DIR
 Write-Host "[构建] lelab-zh wheel: $($LELAB_WHEEL.Name)" -ForegroundColor Green
-
-# 恢复原始 pyproject.toml
-Copy-Item pyproject.toml.bak pyproject.toml -Force
-Remove-Item pyproject.toml.bak -Force
 
 # 检查 wheel METADATA 不残留 git URL
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $ZIP = [System.IO.Compression.ZipFile]::OpenRead($LELAB_WHEEL.FullName)
-$META = $ZIP.Entries | Where-Object { $_.FullName -like "*.METADATA" } | Select-Object -First 1
+$META = $ZIP.Entries | Where-Object { $_.FullName -like "*/METADATA" } | Select-Object -First 1
+if (-not $META) { throw "lelab-zh wheel 缺少 METADATA" }
 if ($META) {
     $STREAM = $META.Open()
     $READER = New-Object System.IO.StreamReader($STREAM)
     $CONTENT = $READER.ReadToEnd()
     $READER.Close()
     $STREAM.Close()
-    if ($CONTENT -match "git\+" -or $CONTENT -match "github\.com/huggingface/lerobot") {
-        Write-Host "[警告] wheel METADATA 中残留 git URL！" -ForegroundColor Red
+    $DEPENDENCY_METADATA = $CONTENT -split "`r?`n" | Where-Object { $_ -like "Requires-Dist:*" }
+    if ($DEPENDENCY_METADATA -match "git\+" -or $DEPENDENCY_METADATA -match "github\.com/huggingface/lerobot") {
+        throw "wheel METADATA 中残留 git URL"
     }
 }
 $ZIP.Dispose()
@@ -116,15 +142,38 @@ Pop-Location
 # ============================================================
 Write-Host "[构建] 下载便携 uv..." -ForegroundColor Yellow
 $UV_URL = "https://astral.sh/uv/0.11.29/install.ps1"
-Invoke-WebRequest -Uri "https://github.com/astral-sh/uv/releases/download/0.11.29/uv-x86_64-pc-windows-msvc.zip" -OutFile (Join-Path $BUILD_DIR "uv.zip")
-Expand-Archive -Path (Join-Path $BUILD_DIR "uv.zip") -DestinationPath $UV_DIR -Force
-Remove-Item (Join-Path $BUILD_DIR "uv.zip") -Force
+$UV_OVERRIDE = $env:LELAB_UV_BINARY
+if ($UV_OVERRIDE -and (Test-Path $UV_OVERRIDE)) {
+    New-Item -ItemType Directory -Force -Path $UV_DIR | Out-Null
+    Copy-Item $UV_OVERRIDE (Join-Path $UV_DIR "uv.exe") -Force
+} else {
+    Invoke-WebRequest -Uri "https://github.com/astral-sh/uv/releases/download/0.11.29/uv-x86_64-pc-windows-msvc.zip" -OutFile (Join-Path $BUILD_DIR "uv.zip")
+    $UV_EXTRACT_DIR = Join-Path $BUILD_DIR "uv-extracted"
+    Expand-Archive -Path (Join-Path $BUILD_DIR "uv.zip") -DestinationPath $UV_EXTRACT_DIR -Force
+    $UV_EXE = Get-ChildItem $UV_EXTRACT_DIR -Recurse -Filter "uv.exe" | Select-Object -First 1
+    if (-not $UV_EXE) { throw "下载的 uv 压缩包中没有 uv.exe" }
+    New-Item -ItemType Directory -Force -Path $UV_DIR | Out-Null
+    Copy-Item $UV_EXE.FullName (Join-Path $UV_DIR "uv.exe") -Force
+    Remove-Item $UV_EXTRACT_DIR -Recurse -Force
+    Remove-Item (Join-Path $BUILD_DIR "uv.zip") -Force
+}
 
 # ============================================================
 # 6. 安装便携 Python 3.12
 # ============================================================
 Write-Host "[构建] 安装便携 Python..." -ForegroundColor Yellow
-uv python install $PYTHON_VERSION --python-install-dir $RUNTIME_DIR
+uv python install $PYTHON_VERSION --install-dir $RUNTIME_DIR
+$RUNTIME_PYTHON = (Get-ChildItem $RUNTIME_DIR -Recurse -Filter "python.exe" | Select-Object -First 1).FullName
+if (-not $RUNTIME_PYTHON) { throw "未找到便携 Python 可执行文件" }
+$PYTHON_HOME = Split-Path -Parent $RUNTIME_PYTHON
+if ($PYTHON_HOME -ne $RUNTIME_DIR) {
+    Copy-Item (Join-Path $PYTHON_HOME "*") $RUNTIME_DIR -Recurse -Force
+    $RUNTIME_PYTHON = Join-Path $RUNTIME_DIR "python.exe"
+    Remove-Item $PYTHON_HOME -Recurse -Force
+}
+# uv 会创建指向版本目录的别名 junction；扁平化后必须删除，避免压缩时出现失效链接。
+Get-ChildItem $RUNTIME_DIR -Force | Where-Object { $_.Attributes -band [System.IO.FileAttributes]::ReparsePoint } | Remove-Item -Force
+if (Test-Path (Join-Path $RUNTIME_DIR ".temp")) { Remove-Item (Join-Path $RUNTIME_DIR ".temp") -Recurse -Force }
 
 # ============================================================
 # 7. 下载所有依赖 wheel
@@ -132,52 +181,93 @@ uv python install $PYTHON_VERSION --python-install-dir $RUNTIME_DIR
 # uv 0.11+ 已移除 uv pip download，改用 pip download
 Write-Host "[构建] 下载第三方依赖 wheel..." -ForegroundColor Yellow
 $LOCK_FILE = Join-Path $LOCKS_DIR "windows-cuda.requirements.txt"
+$DOWNLOAD_LOCK = Join-Path $BUILD_DIR "windows-cuda.download.requirements.txt"
 
-# 用系统 pip 下载（确保平台 wheel 匹配）
-python -m pip download `
+# feetech-servo-sdk 仅发布 sdist，先在打包机上构建 wheel；最终清单使用构建后 hash。
+$LOCK_CONTENT = Get-Content $LOCK_FILE -Raw
+$LOCK_CONTENT = $LOCK_CONTENT -replace '(?ms)^feetech-servo-sdk==1\.0\.0.*?(?=^[A-Za-z0-9][A-Za-z0-9_.-]*==|\z)', ''
+[System.IO.File]::WriteAllText($DOWNLOAD_LOCK, $LOCK_CONTENT, (New-Object System.Text.UTF8Encoding($false)))
+
+# 在临时 venv 中使用 pip，避免修改受 PEP 668 保护的便携 Python。
+$DOWNLOAD_VENV = Join-Path $BUILD_DIR "download-venv"
+& "$UV_DIR\uv.exe" venv $DOWNLOAD_VENV --python $RUNTIME_PYTHON --seed
+if ($LASTEXITCODE -ne 0) { throw "下载环境创建失败" }
+$DOWNLOAD_PYTHON = Join-Path $DOWNLOAD_VENV "Scripts\python.exe"
+
+& $DOWNLOAD_PYTHON -m pip wheel "feetech-servo-sdk==1.0.0" --no-deps --wheel-dir $WHEELS_DIR --no-cache-dir
+if ($LASTEXITCODE -ne 0) { throw "feetech-servo-sdk wheel 构建失败" }
+
+& $DOWNLOAD_PYTHON -m pip download `
   --only-binary=:all: `
   --require-hashes `
   --find-links $WHEELS_DIR `
   --extra-index-url $PYTORCH_CUDA_INDEX `
-  --requirement $LOCK_FILE `
+  --requirement $DOWNLOAD_LOCK `
   --dest $WHEELS_DIR `
   --no-cache-dir
+if ($LASTEXITCODE -ne 0) { throw "第三方 wheel 下载失败" }
+Remove-Item $DOWNLOAD_VENV -Recurse -Force
 
 # ============================================================
 # 8. 验证 CUDA torch
 # ============================================================
 Write-Host "[构建] 验证 CUDA torch..." -ForegroundColor Yellow
 $VENV_DIR = Join-Path $BUILD_DIR "verify-venv"
-& "$UV_DIR\uv.exe" venv $VENV_DIR --python "$RUNTIME_DIR\python.exe"
+& "$UV_DIR\uv.exe" venv $VENV_DIR --python $RUNTIME_PYTHON
+if ($LASTEXITCODE -ne 0) { throw "CUDA 验证环境创建失败" }
 & "$UV_DIR\uv.exe" pip install --python "$VENV_DIR\Scripts\python.exe" --offline --no-index --find-links $WHEELS_DIR torch
+if ($LASTEXITCODE -ne 0) { throw "CUDA torch 离线安装失败" }
 & "$VENV_DIR\Scripts\python.exe" -c "import torch; assert torch.version.cuda is not None, 'CUDA not found'; print(f'torch={torch.__version__} cuda={torch.version.cuda}')"
+if ($LASTEXITCODE -ne 0) { throw "CUDA torch 验证失败" }
 Remove-Item -Recurse -Force $VENV_DIR
 
 # ============================================================
 # 9. 复制安装脚本
 # ============================================================
 Write-Host "[构建] 复制安装脚本..." -ForegroundColor Yellow
-Copy-Item (Join-Path $SCRIPTS_SRC "install_windows.bat") $DIST_DIR
-Copy-Item (Join-Path $SCRIPTS_SRC "start_windows.bat") $DIST_DIR
-Copy-Item (Join-Path $SCRIPTS_SRC "stop_windows.bat") $DIST_DIR
-Copy-Item (Join-Path $SCRIPTS_SRC "repair_windows.bat") $DIST_DIR
-Copy-Item (Join-Path $SCRIPTS_SRC "uninstall_windows.bat") $DIST_DIR
+Copy-Item (Join-Path $SCRIPTS_SRC "install_windows.bat") (Join-Path $DIST_DIR "一键安装.bat")
+Copy-Item (Join-Path $SCRIPTS_SRC "start_windows.bat") (Join-Path $DIST_DIR "启动LeLab.bat")
+Copy-Item (Join-Path $SCRIPTS_SRC "stop_windows.bat") (Join-Path $DIST_DIR "停止LeLab.bat")
+Copy-Item (Join-Path $SCRIPTS_SRC "repair_windows.bat") (Join-Path $DIST_DIR "修复安装.bat")
+Copy-Item (Join-Path $SCRIPTS_SRC "uninstall_windows.bat") (Join-Path $DIST_DIR "卸载LeLab.bat")
 
 # ============================================================
 # 10. 生成 requirements-offline.txt（合并锁 + 本地 wheel hash）
 # ============================================================
 Write-Host "[构建] 生成 requirements-offline.txt..." -ForegroundColor Yellow
 $REQ_FILE = Join-Path $DIST_DIR "requirements-offline.txt"
-Copy-Item $LOCK_FILE $REQ_FILE
+Copy-Item $DOWNLOAD_LOCK $REQ_FILE
 
-# 添加本地 wheel hash
-foreach ($WH in (Get-ChildItem $WHEELS_DIR -Filter "*.whl")) {
+# 添加打包阶段构建的 wheel hash（requirements 中必须使用包名和版本）。
+foreach ($SPEC in @(@("feetech-servo-sdk", "1.0.0"), @("lelab-zh", $APP_VERSION), @("lerobot", $LEROBOT_VERSION))) {
+    $WH = Get-ChildItem $WHEELS_DIR -Filter "$($SPEC[0].Replace('-', '_'))-$($SPEC[1])-*.whl" | Select-Object -First 1
+    if (-not $WH) { throw "未找到本地 wheel: $($SPEC[0]) $($SPEC[1])" }
     $HASH = (Get-FileHash $WH.FullName -Algorithm SHA256).Hash.ToLower()
-    $NAME_VER = $WH.Name -replace '-.*$', ''
-    # 简单追加（实际应解析包名和版本）
     Add-Content $REQ_FILE ""
-    Add-Content $REQ_FILE "$($WH.Name) \"
+    Add-Content $REQ_FILE "$($SPEC[0])==$($SPEC[1]) \"
     Add-Content $REQ_FILE "    --hash=sha256:$HASH"
+}
+
+# 在全新环境中按最终 requirements 做一次完整离线安装，防止只验证 torch 而漏包。
+Write-Host "[构建] 验证完整离线安装..." -ForegroundColor Yellow
+$FULL_VERIFY_VENV = Join-Path $BUILD_DIR "full-verify-venv"
+& "$UV_DIR\uv.exe" venv $FULL_VERIFY_VENV --python $RUNTIME_PYTHON
+if ($LASTEXITCODE -ne 0) { throw "完整验证环境创建失败" }
+& "$UV_DIR\uv.exe" pip install `
+  --python "$FULL_VERIFY_VENV\Scripts\python.exe" `
+  --offline --no-index `
+  --find-links $WHEELS_DIR `
+  --require-hashes `
+  --requirement $REQ_FILE
+if ($LASTEXITCODE -ne 0) { throw "完整离线安装验证失败" }
+& "$FULL_VERIFY_VENV\Scripts\python.exe" -c "import torch, lelab, lerobot; assert torch.version.cuda is not None; print('full offline import check: OK')"
+if ($LASTEXITCODE -ne 0) { throw "完整离线导入验证失败" }
+Remove-Item $FULL_VERIFY_VENV -Recurse -Force
+
+# README 必须在 SHA256 清单生成前复制
+$README_TEMPLATE = Join-Path $PROJECT_ROOT "packaging\offline\README-离线安装模板.txt"
+if (Test-Path $README_TEMPLATE) {
+    Copy-Item $README_TEMPLATE (Join-Path $DIST_DIR "README-离线安装.txt")
 }
 
 # ============================================================
@@ -185,19 +275,23 @@ foreach ($WH in (Get-ChildItem $WHEELS_DIR -Filter "*.whl")) {
 # ============================================================
 Write-Host "[构建] 生成 SHA256SUMS.txt..." -ForegroundColor Yellow
 $SUMS_FILE = Join-Path $DIST_DIR "SHA256SUMS.txt"
-Get-ChildItem $DIST_DIR -Recurse -File | Where-Object { $_.Name -ne "SHA256SUMS.txt" } | ForEach-Object {
+$SUM_LINES = Get-ChildItem $DIST_DIR -Recurse -File | Where-Object { $_.Name -ne "SHA256SUMS.txt" } | ForEach-Object {
     $HASH = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
     $REL = $_.FullName.Substring($DIST_DIR.Length + 1)
-    "$HASH  $REL" | Out-File -Append -FilePath $SUMS_FILE -Encoding utf8
+    "$HASH  $REL"
 }
+[System.IO.File]::WriteAllLines($SUMS_FILE, [string[]]$SUM_LINES, (New-Object System.Text.UTF8Encoding($true)))
 
 # ============================================================
-# 12. 复制 README 模板
+# 12. 生成最终 zip（Windows 自带 bsdtar 支持大文件）
 # ============================================================
-$README_TEMPLATE = Join-Path $PROJECT_ROOT "packaging\offline\README-离线安装模板.txt"
-if (Test-Path $README_TEMPLATE) {
-    Copy-Item $README_TEMPLATE (Join-Path $DIST_DIR "README-离线安装.txt")
-}
+Write-Host "[构建] 正在生成最终 zip..." -ForegroundColor Yellow
+$ZIP_PATH = "$DIST_DIR.zip"
+if (Test-Path $ZIP_PATH) { Remove-Item $ZIP_PATH -Force }
+$DIST_PARENT = Split-Path -Parent $DIST_DIR
+$DIST_NAME = Split-Path -Leaf $DIST_DIR
+& tar.exe -a -c -f $ZIP_PATH -C $DIST_PARENT $DIST_NAME
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path $ZIP_PATH)) { throw "最终 zip 生成失败" }
 
 # ============================================================
 # 完成
@@ -205,6 +299,7 @@ if (Test-Path $README_TEMPLATE) {
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Green
 Write-Host "  构建完成: $DIST_DIR" -ForegroundColor Green
+Write-Host "  压缩包: $ZIP_PATH" -ForegroundColor Green
 Write-Host "============================================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "下一步: 手动压缩为 zip 并复制到 U 盘"
+Write-Host "下一步: 在干净 Windows 电脑上断网验收，再复制到 U 盘"

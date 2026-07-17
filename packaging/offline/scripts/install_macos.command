@@ -69,8 +69,15 @@ echo ""
 if [ -f "$PACKAGE_ROOT/SHA256SUMS.txt" ]; then
     echo "[信息] 正在校验文件完整性..."
     cd "$PACKAGE_ROOT"
-    sha256sum -c SHA256SUMS.txt --quiet 2>/dev/null || shasum -a 256 -c SHA256SUMS.txt --quiet 2>/dev/null || true
-    cd "$PACKAGE_ROOT"
+    if command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 -c SHA256SUMS.txt
+    elif command -v sha256sum >/dev/null 2>&1; then
+        sha256sum -c SHA256SUMS.txt
+    else
+        echo "[错误] 系统缺少 SHA256 校验工具。"
+        read -p "按回车键退出..."
+        exit 1
+    fi
     echo "[信息] 校验完成。"
 fi
 echo ""
@@ -82,16 +89,23 @@ INSTALL_DIR="$HOME/Library/Application Support/LeLab-zh"
 if [ -d "$INSTALL_DIR" ]; then
     echo "[信息] 检测到已有安装: $INSTALL_DIR"
     echo "[信息] 将覆盖安装..."
+    if [ -x "$INSTALL_DIR/venv/bin/lelab-zh" ]; then
+        "$INSTALL_DIR/venv/bin/lelab-zh" --stop >/dev/null 2>&1 || true
+    fi
 fi
 mkdir -p "$INSTALL_DIR"
 echo "[安装] 安装目录: $INSTALL_DIR"
 
 # ============================================================
-# 7. 拷贝 runtime 和 uv（保留可执行权限）
+# 7. 拷贝离线运行与修复所需文件（保留可执行权限）
 # ============================================================
 echo "[安装] 正在复制运行时文件..."
+rm -rf "$INSTALL_DIR/runtime" "$INSTALL_DIR/uv" "$INSTALL_DIR/wheels"
+rm -rf "$INSTALL_DIR/venv"
 cp -R "$PACKAGE_ROOT/runtime" "$INSTALL_DIR/runtime"
 cp -R "$PACKAGE_ROOT/uv" "$INSTALL_DIR/uv"
+cp -R "$PACKAGE_ROOT/wheels" "$INSTALL_DIR/wheels"
+cp "$PACKAGE_ROOT/requirements-offline.txt" "$INSTALL_DIR/requirements-offline.txt"
 chmod +x "$INSTALL_DIR/uv/uv"
 chmod +x "$INSTALL_DIR/runtime/bin/python3.12"
 echo "[安装] 运行时文件复制完成。"
@@ -130,7 +144,7 @@ echo "[安装] 依赖安装完成。"
 # 10. 创建桌面快捷方式（Finder 启动器）
 # ============================================================
 echo "[安装] 正在创建启动器..."
-mkdir -p "$HOME/Applications"
+mkdir -p "$HOME/Applications/LeLab-zh.app/Contents/MacOS"
 cat > "$HOME/Applications/LeLab-zh.app/Contents/Info.plist" << PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -145,12 +159,12 @@ cat > "$HOME/Applications/LeLab-zh.app/Contents/Info.plist" << PLIST
 </dict>
 </plist>
 PLIST
-mkdir -p "$HOME/Applications/LeLab-zh.app/Contents/MacOS"
 cat > "$HOME/Applications/LeLab-zh.app/Contents/MacOS/launch" << LAUNCH
 #!/bin/bash
 exec "$INSTALL_DIR/venv/bin/lelab-zh"
 LAUNCH
 chmod +x "$HOME/Applications/LeLab-zh.app/Contents/MacOS/launch"
+ln -sfn "$HOME/Applications/LeLab-zh.app" "$HOME/Desktop/启动LeLab.app"
 echo "[安装] 启动器已创建: $HOME/Applications/LeLab-zh.app"
 
 # ============================================================

@@ -29,6 +29,7 @@ fi
 # 删除启动器
 echo "[卸载] 删除启动器..."
 rm -rf "$HOME/Applications/LeLab-zh.app"
+rm -f "$HOME/Desktop/启动LeLab.app"
 
 # 删除安装目录
 echo "[卸载] 删除安装目录..."

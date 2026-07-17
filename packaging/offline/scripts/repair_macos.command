@@ -2,9 +2,6 @@
 # LeLab-zh 修复安装 (macOS)
 INSTALL_DIR="$HOME/Library/Application Support/LeLab-zh"
 
-# 获取 PACKAGE_ROOT
-PACKAGE_ROOT="$(cd "$(dirname "$0")" && pwd)"
-
 echo "============================================================"
 echo "  LeLab-zh 修复安装"
 echo "============================================================"
@@ -46,9 +43,9 @@ echo "[修复] 重新安装依赖..."
   --python "$INSTALL_DIR/venv/bin/python" \
   --offline \
   --no-index \
-  --find-links "$PACKAGE_ROOT/wheels" \
+  --find-links "$INSTALL_DIR/wheels" \
   --require-hashes \
-  -r "$PACKAGE_ROOT/requirements-offline.txt"
+  -r "$INSTALL_DIR/requirements-offline.txt"
 if [ $? -ne 0 ]; then
     echo "[错误] 依赖安装失败。正在恢复旧环境..."
     rm -rf "$INSTALL_DIR/venv"

@@ -3,8 +3,10 @@ chcp 65001 >nul
 title LeLab-zh 修复安装
 set "INSTALL_DIR=%LOCALAPPDATA%\LeLab-zh"
 
-if not exist "%PACKAGE_ROOT%\wheels\" (
-    set /p PACKAGE_ROOT="请输入安装包解压目录路径: "
+if not exist "%INSTALL_DIR%\wheels\" (
+    echo [错误] 本地修复文件不存在，请重新运行「一键安装」。
+    pause
+    exit /b 1
 )
 
 echo ============================================================
@@ -45,9 +47,9 @@ echo [修复] 重新安装依赖...
   --python "%INSTALL_DIR%\venv\Scripts\python.exe" ^
   --offline ^
   --no-index ^
-  --find-links "%PACKAGE_ROOT%\wheels" ^
+  --find-links "%INSTALL_DIR%\wheels" ^
   --require-hashes ^
-  -r "%PACKAGE_ROOT%\requirements-offline.txt"
+  -r "%INSTALL_DIR%\requirements-offline.txt"
 if %errorlevel% neq 0 (
     echo [错误] 依赖安装失败。正在恢复旧环境...
     rmdir /s /q "%INSTALL_DIR%\venv" 2>nul
