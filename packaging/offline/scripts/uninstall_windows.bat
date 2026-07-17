@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 chcp 65001 >nul
 title LeLab-zh 卸载
 set "INSTALL_DIR=%LOCALAPPDATA%\LeLab-zh"
@@ -15,37 +15,34 @@ echo        - 模型文件
 echo        - 用户自己保存的训练结果
 echo.
 choice /c YN /m "确认卸载？"
-if errorlevel 2 (
-    echo 卸载已取消。
-    pause
-    exit /b 0
-)
+if errorlevel 2 goto :cancel
 
-REM 先停止
 echo [卸载] 正在停止 LeLab-zh...
-if exist "%INSTALL_DIR%\venv\Scripts\lelab-zh.exe" (
-    "%INSTALL_DIR%\venv\Scripts\lelab-zh.exe" --stop 2>nul
-)
-
-REM 删除桌面快捷方式
+if exist "%INSTALL_DIR%\venv\Scripts\lelab-zh.exe" "%INSTALL_DIR%\venv\Scripts\lelab-zh.exe" --stop 2>nul
 echo [卸载] 删除桌面快捷方式...
 for /f "usebackq delims=" %%D in (`powershell -NoProfile -Command "[Environment]::GetFolderPath('Desktop')"`) do set "DESKTOP=%%D"
+del "%DESKTOP%\Start LeLab.lnk" 2>nul
 del "%DESKTOP%\启动LeLab.lnk" 2>nul
 del "%DESKTOP%\启动LeLab-zh.lnk" 2>nul
+if exist "%INSTALL_DIR%" goto :remove
+echo [信息] 安装目录不存在，无需删除。
+goto :done
 
-REM 删除安装目录
+:remove
 echo [卸载] 删除安装目录...
-if exist "%INSTALL_DIR%" (
-    rmdir /s /q "%INSTALL_DIR%"
-    echo [完成] 安装目录已删除。
-) else (
-    echo [信息] 安装目录不存在，无需删除。
-)
+rmdir /s /q "%INSTALL_DIR%"
+echo [完成] 安装目录已删除。
 
+:done
 echo.
 echo ============================================================
 echo   LeLab-zh 已卸载。
 echo ============================================================
 echo.
+pause
+exit /b 0
+
+:cancel
+echo 卸载已取消。
 pause
 exit /b 0
