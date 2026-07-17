@@ -77,8 +77,9 @@ cd "$PROJECT_ROOT"
 echo "[构建] 构建 lelab-zh wheel..."
 cd "$LAB_SRC"
 
-# 创建 staging pyproject.toml
-sed "s|lerobot\[core_scripts,feetech,training\] @ git+https://github.com/huggingface/lerobot.git@v0.6.0|lerobot[core_scripts,feetech,training]==$LEROBOT_VERSION|g" pyproject.toml > pyproject.staging.toml
+# 创建 staging pyproject.toml 并临时替换（uv build 只读 pyproject.toml）
+cp pyproject.toml pyproject.toml.bak
+sed "s|lerobot\[core_scripts,feetech,training\] @ git+https://github.com/huggingface/lerobot.git@v0.6.0|lerobot[core_scripts,feetech,training]==$LEROBOT_VERSION|g" pyproject.toml.bak > pyproject.toml
 
 SETUPTOOLS_SCM_PRETEND_VERSION=$VERSION uv build --wheel
 
@@ -91,7 +92,9 @@ if unzip -p "$LELAB_WHEEL" "*.METADATA" 2>/dev/null | grep -qE "git\+|github\.co
     echo "[警告] wheel METADATA 中残留 git URL！"
 fi
 
-rm -f pyproject.staging.toml
+# 恢复原始 pyproject.toml
+cp pyproject.toml.bak pyproject.toml
+rm -f pyproject.toml.bak
 cd "$PROJECT_ROOT"
 
 # ============================================================
@@ -114,13 +117,16 @@ uv python install "$PYTHON_VERSION" --python-install-dir "$RUNTIME_DIR"
 # ============================================================
 # 7. 下载所有依赖 wheel
 # ============================================================
+# uv 0.11+ 已移除 uv pip download，改用 pip download
 echo "[构建] 下载第三方依赖 wheel..."
 LOCK_FILE="$LOCKS_DIR/macos-arm64.requirements.txt"
-uv pip download \
-    --only-binary :all: \
+python3 -m pip download \
+    --only-binary=:all: \
+    --require-hashes \
     --find-links "$WHEELS_DIR" \
     --requirement "$LOCK_FILE" \
-    --dest "$WHEELS_DIR"
+    --dest "$WHEELS_DIR" \
+    --no-cache-dir
 
 # ============================================================
 # 8. 验证 macOS torch（无 CUDA，MPS 可用）

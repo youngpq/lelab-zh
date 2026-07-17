@@ -74,19 +74,24 @@ Pop-Location
 Write-Host "[构建] 构建 lelab-zh wheel..." -ForegroundColor Yellow
 Push-Location $LAB_SRC
 
-# 创建 staging pyproject.toml：替换 lerobot git 依赖为本地路径
+# 创建 staging pyproject.toml：替换 lerobot git 依赖为版本锁定
 $PYPROJECT = Get-Content pyproject.toml -Raw
 $PYPROJECT = $PYPROJECT -replace 'lerobot\[core_scripts,feetech,training\] @ git\+https://github\.com/huggingface/lerobot\.git@v0\.6\.0', "lerobot[core_scripts,feetech,training]==$LEROBOT_VERSION"
-$STAGING_PYPROJECT = "pyproject.staging.toml"
-Set-Content $STAGING_PYPROJECT $PYPROJECT
+# uv build 只读 pyproject.toml，必须临时替换
+Copy-Item pyproject.toml pyproject.toml.bak
+Set-Content pyproject.toml $PYPROJECT
 
-# 用 staging 配置构建
+# 用替换后的 pyproject.toml 构建
 $env:SETUPTOOLS_SCM_PRETEND_VERSION = $VERSION
 uv build --wheel
 
 $LELAB_WHEEL = Get-ChildItem dist\*.whl | Select-Object -First 1
 Copy-Item $LELAB_WHEEL.FullName $WHEELS_DIR
 Write-Host "[构建] lelab-zh wheel: $($LELAB_WHEEL.Name)" -ForegroundColor Green
+
+# 恢复原始 pyproject.toml
+Copy-Item pyproject.toml.bak pyproject.toml -Force
+Remove-Item pyproject.toml.bak -Force
 
 # 检查 wheel METADATA 不残留 git URL
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -104,7 +109,6 @@ if ($META) {
 }
 $ZIP.Dispose()
 
-Remove-Item $STAGING_PYPROJECT -Force
 Pop-Location
 
 # ============================================================
@@ -125,15 +129,19 @@ uv python install $PYTHON_VERSION --python-install-dir $RUNTIME_DIR
 # ============================================================
 # 7. 下载所有依赖 wheel
 # ============================================================
+# uv 0.11+ 已移除 uv pip download，改用 pip download
 Write-Host "[构建] 下载第三方依赖 wheel..." -ForegroundColor Yellow
 $LOCK_FILE = Join-Path $LOCKS_DIR "windows-cuda.requirements.txt"
-uv pip download `
-  --only-binary :all: `
+
+# 用系统 pip 下载（确保平台 wheel 匹配）
+python -m pip download `
+  --only-binary=:all: `
+  --require-hashes `
   --find-links $WHEELS_DIR `
   --extra-index-url $PYTORCH_CUDA_INDEX `
-  --index-strategy unsafe-best-match `
   --requirement $LOCK_FILE `
-  --dest $WHEELS_DIR
+  --dest $WHEELS_DIR `
+  --no-cache-dir
 
 # ============================================================
 # 8. 验证 CUDA torch
