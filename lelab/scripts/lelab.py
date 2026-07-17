@@ -51,6 +51,7 @@ FRONTEND_NODE_MODULES = FRONTEND_PATH / "node_modules"
 HOST = "127.0.0.1"
 BACKEND_PORT = 8000
 FRONTEND_DEV_PORT = 8080
+CLI_COMMAND = "lelab-zh"
 
 
 def _fail(message: str) -> NoReturn:
@@ -77,7 +78,7 @@ def _ensure_port_available(name: str, port: int, host: str = HOST) -> None:
         return
     _fail(
         f"{name} port {port} is already in use on {host}. "
-        "If a previous LeLab run is still holding it, run `lelab --stop` to free it, "
+        f"If a previous LeLab run is still holding it, run `{CLI_COMMAND} --stop` to free it, "
         "then run the command again."
     )
 
@@ -173,7 +174,7 @@ def _ensure_frontend_dist() -> None:
     if index_html.exists():
         return
     _fail(
-        f"Built frontend not found at {index_html}. Run `lelab --rebuild`, "
+        f"Built frontend not found at {index_html}. Run `{CLI_COMMAND} --rebuild`, "
         "or run `cd frontend && npm run build`, then start LeLab again."
     )
 
@@ -442,7 +443,7 @@ def _run_dev(*, no_open: bool = False) -> None:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="lelab", description="Run LeLab")
+    parser = argparse.ArgumentParser(prog=CLI_COMMAND, description="Run LeLab")
     parser.add_argument(
         "--dev",
         action="store_true",
