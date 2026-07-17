@@ -81,7 +81,17 @@ uv tool update-shell
 - 点击程序坞中的「启动台」→ 找到「终端」并点击
 - 按 `Command + 空格` 打开聚焦搜索，输入「终端」并回车
 
-**第二步：安装 uv**
+**第二步：安装 Xcode Command Line Tools（必需）**
+
+macOS 默认不自带 `git`，而安装 lelab-zh 需要通过 git 拉取代码。在终端中执行：
+
+```bash
+xcode-select --install
+```
+
+在弹出的对话框中点击「安装」，等待完成（约 2-5 分钟）。如果已安装过会提示 `already installed`，可以跳过。
+
+**第三步：安装 uv**
 
 在终端中粘贴以下命令并回车：
 
@@ -95,7 +105,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv --version
 ```
 
-**第三步：安装 lelab-zh**
+**第四步：安装 lelab-zh**
 
 ```bash
 uv tool install --python 3.12 \
@@ -104,7 +114,7 @@ uv tool install --python 3.12 \
 
 网络较慢时，先执行上面「网络较慢时（换源）」中的 `export` 命令再安装。
 
-**第四步：运行**
+**第五步：运行**
 
 ```bash
 lelab-zh
