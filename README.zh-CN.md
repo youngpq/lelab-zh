@@ -6,9 +6,9 @@
 
 ## 安装与运行
 
-### 安装 uv
+### 1. 安装 uv
 
-推荐使用 [uv](https://docs.astral.sh/uv/) 安装和运行 lelab-zh。uv 会自动管理 Python 版本和依赖隔离，发布版本安装时不需要 Node.js，也不需要 Git LFS。
+推荐使用 [uv](https://docs.astral.sh/uv/) 安装和运行 lelab-zh。uv 会自动管理 Python 版本和依赖隔离，无需额外安装 Python。
 
 **Linux / WSL：**
 
@@ -17,6 +17,8 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 **macOS：**
+
+打开终端（启动台 → 终端，或 `Command + 空格` 搜索「终端」），粘贴：
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -28,15 +30,57 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-安装完成后，关闭终端并重新打开（或执行 `source ~/.bashrc` / `source ~/.zshrc`），验证：
+安装完成后，关闭终端并重新打开，验证：
 
 ```bash
 uv --version
 ```
 
-### 网络较慢时（换源）
+> 若提示 `command not found`，执行 `source ~/.bashrc`（Linux）或 `source ~/.zshrc`（macOS），或重启终端。
 
-以下设置将 PyPI 依赖下载切换到清华镜像，并提高连接超时。**建议国内用户在安装 lelab-zh 之前先执行：**
+### 2. 安装 Git
+
+`uv tool install` 通过 `git+https://` 拉取仓库，需要系统已安装 git。
+
+**Linux / WSL：**
+
+多数发行版已预装。若未安装：
+
+```bash
+# Debian / Ubuntu
+sudo apt install git -y
+
+# RHEL / Fedora
+sudo yum install git -y
+```
+
+**macOS：**
+
+```bash
+xcode-select --install
+```
+
+在弹出的对话框中点击「安装」，等待完成（约 2-5 分钟）。已安装过会提示 `already installed`，可跳过。
+
+**Windows：**
+
+```powershell
+winget install --id Git.Git -e --source winget
+```
+
+或从 [git-scm.com](https://git-scm.com/download/win) 下载安装包。
+
+验证：
+
+```bash
+git --version
+```
+
+### 3. 换源（国内用户推荐）
+
+将 PyPI 依赖下载切换到清华镜像，大幅提升安装速度。**建议国内用户在安装 lelab-zh 前先执行。**
+
+**Linux / macOS：**
 
 ```bash
 export UV_DEFAULT_INDEX=https://pypi.tuna.tsinghua.edu.cn/simple
@@ -45,84 +89,52 @@ export UV_HTTP_RETRIES=10
 export UV_CONCURRENT_DOWNLOADS=4
 ```
 
-若希望每次打开终端都生效，可将这四行加入 `~/.bashrc`（Linux）或 `~/.zshrc`（macOS），再执行 `source ~/.bashrc`（或 `source ~/.zshrc`）。
+持久化（每次打开终端自动生效）：
+- Linux：将以上四行加入 `~/.bashrc`，再执行 `source ~/.bashrc`
+- macOS：将以上四行加入 `~/.zshrc`，再执行 `source ~/.zshrc`
 
-> **注意**：GitHub 仓库本身仍通过 GitHub 下载。如果 GitHub 完全无法访问（无梯子），可先将仓库 clone 到本地再通过 `uv tool install .` 安装。
+**Windows（PowerShell）：**
 
-### 安装 lelab-zh
+```powershell
+$env:UV_DEFAULT_INDEX = "https://pypi.tuna.tsinghua.edu.cn/simple"
+$env:UV_HTTP_TIMEOUT = "600"
+$env:UV_HTTP_RETRIES = "10"
+$env:UV_CONCURRENT_DOWNLOADS = "4"
+```
+
+持久化：打开「系统属性 → 环境变量」添加以上四个用户变量。
+
+> **注意**：GitHub 仓库本身仍通过 GitHub 下载。如果 GitHub 完全无法访问，可先将仓库 clone 到本地再通过 `uv tool install .` 从本地安装。
+
+### 4. 安装 lelab-zh
 
 ```bash
 uv tool install --python 3.12 \
   git+https://github.com/youngpq/lelab-zh.git@v0.1.0-zh.1
-
-lelab-zh
 ```
 
-安装或覆盖同一版本时，使用：
+安装或覆盖同一版本：
 
 ```bash
 uv tool install --force --reinstall --refresh --python 3.12 \
   git+https://github.com/youngpq/lelab-zh.git@v0.1.0-zh.1
 ```
 
-首次安装需要网络连接以下载 Python、PyTorch、LeRobot 和相关依赖。若 `lelab-zh` 不在 PATH，执行一次：
+首次安装需要网络连接以下载 Python、PyTorch、LeRobot 和相关依赖。若 `lelab-zh` 不在 PATH：
 
 ```bash
 uv tool update-shell
 ```
 
-### macOS 用户指南 🍎
-
-以下是从零开始的 macOS 教程，适合不熟悉命令行的用户。
-
-**第一步：打开终端**
-
-终端是 macOS 上执行命令的工具。任选一种方式打开：
-- 点击程序坞中的「启动台」→ 找到「终端」并点击
-- 按 `Command + 空格` 打开聚焦搜索，输入「终端」并回车
-
-**第二步：安装 Xcode Command Line Tools（必需）**
-
-macOS 默认不自带 `git`，而安装 lelab-zh 需要通过 git 拉取代码。在终端中执行：
-
-```bash
-xcode-select --install
-```
-
-在弹出的对话框中点击「安装」，等待完成（约 2-5 分钟）。如果已安装过会提示 `already installed`，可以跳过。
-
-**第三步：安装 uv**
-
-在终端中粘贴以下命令并回车：
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-安装完成后，关闭终端窗口并重新打开（或执行 `source ~/.zshrc`），然后验证：
-
-```bash
-uv --version
-```
-
-**第四步：安装 lelab-zh**
-
-```bash
-uv tool install --python 3.12 \
-  git+https://github.com/youngpq/lelab-zh.git@v0.1.0-zh.1
-```
-
-网络较慢时，先执行上面「网络较慢时（换源）」中的 `export` 命令再安装。
-
-**第五步：运行**
+### 5. 运行
 
 ```bash
 lelab-zh
 ```
 
-浏览器会自动打开 LeLab 界面。如果未自动打开，手动访问 <http://127.0.0.1:8000>。
+浏览器会自动打开 LeLab 界面。未自动打开时手动访问 <http://127.0.0.1:8000>。
 
-> **提示**：macOS 上如果弹出「无法验证开发者」的警告，去「系统设置 → 隐私与安全性」中点击「仍要打开」即可。另外，macOS 上使用机器人硬件时，串口路径为 `/dev/cu.usb*` 而非 `/dev/ttyUSB*`。
+> **macOS 提示**：如果弹出「无法验证开发者」，去「系统设置 → 隐私与安全性」中点击「仍要打开」。使用机器人硬件时串口路径为 `/dev/cu.usb*` 而非 `/dev/ttyUSB*`。
 
 ### 启动、停止与访问
 
