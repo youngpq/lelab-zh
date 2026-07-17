@@ -112,11 +112,7 @@ function Install-LeLab {
         Write-Host "[信息] 检测到 NVIDIA 显卡或驱动，将启用 CUDA 加速。"
     } else {
         Write-Host "[警告] 未检测到 NVIDIA 显卡或驱动。"
-        $continue = Read-Host "将以 CPU 模式运行，训练会很慢。是否继续安装？(Y/N)"
-        if ($continue -notmatch '^[Yy]$') {
-            Write-Host "安装已取消。"
-            return
-        }
+        Write-Host "       将以 CPU 模式运行，训练会较慢；安装继续。"
     }
 
     $exe = Get-Executable $installDir
