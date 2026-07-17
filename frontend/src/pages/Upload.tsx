@@ -30,6 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useTranslation } from "react-i18next";
 
 interface DatasetInfo {
   dataset_repo_id: string;
@@ -49,6 +50,7 @@ interface UploadConfig {
 }
 
 const Upload = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -78,8 +80,8 @@ const Upload = () => {
     const loadDatasetInfo = async () => {
       if (!initialDatasetInfo?.dataset_repo_id) {
         toast({
-          title: "No Dataset Information",
-          description: "Please complete a recording session first.",
+          title: t("upload.noDatasetInfo"),
+          description: t("upload.completeRecordingFirst"),
           variant: "destructive",
         });
         navigate("/");
@@ -108,9 +110,8 @@ const Upload = () => {
         } else {
           // Fallback to initial dataset info if backend fails
           toast({
-            title: "Warning",
-            description:
-              "Could not load complete dataset information. Using session data.",
+            title: t("upload.warning"),
+            description: t("upload.incompleteInfo"),
             variant: "destructive",
           });
           setDatasetInfo(initialDatasetInfo);
@@ -119,8 +120,8 @@ const Upload = () => {
         console.error("Error loading dataset info:", error);
         // Fallback to initial dataset info
         toast({
-          title: "Warning",
-          description: "Could not connect to backend. Using session data.",
+          title: t("upload.warning"),
+          description: t("upload.usingSessionData"),
           variant: "destructive",
         });
         setDatasetInfo(initialDatasetInfo);
@@ -130,7 +131,7 @@ const Upload = () => {
     };
 
     loadDatasetInfo();
-  }, [initialDatasetInfo, navigate, toast]);
+  }, [initialDatasetInfo, navigate, toast, t]);
 
   const openInHubViewer = (repoId: string) => {
     const spacePath = `/spaces/lerobot/visualize_dataset?path=${encodeURIComponent(`/${repoId}`)}`;
@@ -180,13 +181,13 @@ const Upload = () => {
       if (response.ok && data.success) {
         setUploadSuccess(true);
         toast({
-          title: "Upload Successful!",
-          description: `Dataset ${datasetInfo.dataset_repo_id} has been uploaded to HuggingFace Hub.`,
+          title: t("upload.uploaded"),
+          description: t("upload.uploadedDescription"),
         });
       } else {
-        const fallback = "Failed to upload dataset to HuggingFace Hub.";
+        const fallback = t("upload.uploadFailedDescription");
         toast({
-          title: "Upload Failed",
+          title: t("upload.uploadFailed"),
           description: data.docs_url ? (
             <span>
               {data.message || fallback}{" "}
@@ -196,7 +197,7 @@ const Upload = () => {
                 rel="noopener noreferrer"
                 className="underline font-medium"
               >
-                Open setup guide
+                {t("upload.openSetupGuide")}
               </a>
             </span>
           ) : (
@@ -208,8 +209,8 @@ const Upload = () => {
     } catch (error) {
       console.error("Error uploading dataset:", error);
       toast({
-        title: "Connection Error",
-        description: "Could not connect to the backend server.",
+        title: t("upload.connectionError"),
+        description: t("upload.couldNotConnect"),
         variant: "destructive",
       });
     } finally {
@@ -219,8 +220,8 @@ const Upload = () => {
 
   const handleSkipUpload = () => {
     toast({
-      title: "Upload Skipped",
-      description: "Dataset saved locally. You can upload it manually later.",
+      title: t("upload.skipped"),
+      description: t("upload.savedLocally"),
     });
     navigate("/");
   };
@@ -236,21 +237,21 @@ const Upload = () => {
       const data = await response.json();
       if (response.ok && data.success) {
         toast({
-          title: "Dataset Deleted",
-          description: `${datasetInfo.dataset_repo_id} has been removed from disk.`,
+          title: t("upload.deleted"),
+          description: t("upload.deletedDescription", { name: datasetInfo.dataset_repo_id }),
         });
         navigate("/");
       } else {
         toast({
-          title: "Delete Failed",
-          description: data.message || "Could not delete the dataset.",
+          title: t("upload.deleteFailed"),
+          description: data.message || t("upload.couldNotDelete"),
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Connection Error",
-        description: "Could not connect to the backend server.",
+        title: t("upload.connectionError"),
+        description: t("upload.couldNotConnect"),
         variant: "destructive",
       });
     } finally {
@@ -265,7 +266,7 @@ const Upload = () => {
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-lg">Loading dataset information...</p>
+          <p className="text-lg">{t("upload.loading")}</p>
         </div>
       </div>
     );
@@ -285,14 +286,14 @@ const Upload = () => {
               className="border-gray-500 hover:border-gray-200 text-gray-300 hover:text-white"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Home
+              {t("upload.backToHome")}
             </Button>
             <Button
               onClick={() => setShowDeleteConfirm(true)}
               variant="outline"
               size="icon"
               disabled={isDeleting}
-              aria-label="Delete dataset from disk"
+              aria-label={t("upload.deleteFromDisk")}
               className="border-red-500/40 text-red-400 hover:border-red-400 hover:text-red-300 hover:bg-red-500/10"
             >
               <Trash2 className="w-4 h-4" />
@@ -306,7 +307,7 @@ const Upload = () => {
               <Database className="w-8 h-8 text-blue-500" />
             )}
             <h1 className="text-3xl font-bold">
-              {uploadSuccess ? "Upload Complete" : "Dataset Upload"}
+              {uploadSuccess ? t("upload.uploadComplete") : t("upload.datasetUpload")}
             </h1>
           </div>
         </div>
@@ -317,12 +318,11 @@ const Upload = () => {
             <div className="flex items-center gap-3 mb-4">
               <CheckCircle className="w-6 h-6 text-green-500" />
               <h2 className="text-xl font-semibold text-green-400">
-                Successfully Uploaded!
+                {t("upload.uploaded")}
               </h2>
             </div>
             <p className="text-gray-300 mb-4">
-              Your dataset has been uploaded to HuggingFace Hub and is now
-              available for training and sharing.
+              {t("upload.uploadedDescription")}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button
@@ -338,7 +338,7 @@ const Upload = () => {
                 className="bg-blue-500 hover:bg-blue-600 text-white"
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
-                View on HuggingFace Hub
+                {t("upload.viewOnHub")}
               </Button>
               <Button
                 onClick={() =>
@@ -348,7 +348,7 @@ const Upload = () => {
                 }
                 className="bg-purple-500 hover:bg-purple-600 text-white"
               >
-                Start Training
+                {t("training.start")}
               </Button>
             </div>
           </div>
@@ -360,35 +360,35 @@ const Upload = () => {
             {/* Dataset Summary */}
             <div className="bg-gray-900 rounded-lg p-6 border border-gray-700 mb-8">
               <h2 className="text-xl font-semibold text-white mb-4">
-                Dataset Summary
+                {t("upload.summary")}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <div>
-                    <span className="text-gray-400">Repository ID:</span>
+                    <span className="text-gray-400">{t("upload.repositoryId")}</span>
                     <p className="text-white font-mono text-lg">
                       {datasetInfo.dataset_repo_id}
                     </p>
                   </div>
                   <div>
-                    <span className="text-gray-400">Task:</span>
+                    <span className="text-gray-400">{t("upload.task")}</span>
                     <p className="text-white">{datasetInfo.single_task}</p>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <span className="text-gray-400">Episodes Recorded:</span>
+                    <span className="text-gray-400">{t("upload.episodesRecorded")}</span>
                     <p className="text-white text-2xl font-bold text-green-400">
                       {datasetInfo.saved_episodes || datasetInfo.num_episodes}
                     </p>
                     {datasetInfo.total_frames && (
                       <p className="text-gray-400 text-sm">
-                        {datasetInfo.total_frames} total frames
+                        {t("upload.totalFrames", { count: datasetInfo.total_frames })}
                       </p>
                     )}
                   </div>
                   <div>
-                    <span className="text-gray-400">Session Duration:</span>
+                    <span className="text-gray-400">{t("upload.sessionDuration")}</span>
                     <p className="text-white">
                       {formatDuration(datasetInfo.session_elapsed_seconds || 0)}
                     </p>
@@ -406,14 +406,14 @@ const Upload = () => {
             {!isAlreadyOnHub && (
               <div className="bg-gray-900 rounded-lg p-6 border border-gray-700 mb-8">
                 <h2 className="text-xl font-semibold text-white mb-6">
-                  Upload Configuration
+                  {t("upload.configuration")}
                 </h2>
 
                 <div className="space-y-6">
                   {/* Tags */}
                   <div>
                     <Label htmlFor="tags" className="text-gray-300 mb-2 block">
-                      Tags (comma-separated)
+                      {t("upload.tags")}
                     </Label>
                     <Input
                       id="tags"
@@ -423,7 +423,7 @@ const Upload = () => {
                       className="bg-gray-800 border-gray-600 text-white"
                     />
                     <p className="text-sm text-gray-500 mt-1">
-                      Tags help others discover your dataset on HuggingFace Hub
+                      {t("upload.tagsHint")}
                     </p>
                   </div>
 
@@ -446,14 +446,14 @@ const Upload = () => {
                         <Eye className="w-4 h-4 text-gray-400" />
                       )}
                       <Label htmlFor="private" className="text-gray-300">
-                        Make dataset private
+                        {t("upload.makePrivate")}
                       </Label>
                     </div>
                   </div>
                   <p className="text-sm text-gray-500 ml-6">
                     {uploadConfig.private
-                      ? "Only you will be able to access this dataset"
-                      : "Dataset will be publicly accessible on HuggingFace Hub"}
+                      ? t("upload.privateHint")
+                      : t("upload.publicHint")}
                   </p>
                 </div>
               </div>
@@ -467,7 +467,7 @@ const Upload = () => {
                   className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-4 px-8 text-lg"
                 >
                   <ExternalLink className="w-5 h-5 mr-2" />
-                  View on Hugging Face Hub
+                  {t("upload.viewOnHub")}
                 </Button>
               ) : (
                 <>
@@ -479,12 +479,12 @@ const Upload = () => {
                     {isUploading ? (
                       <>
                         <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Uploading to Hub...
+                        {t("upload.uploading")}
                       </>
                     ) : (
                       <>
                         <UploadIcon className="w-5 h-5 mr-2" />
-                        Upload to HuggingFace Hub
+                        {t("upload.uploadToHub")}
                       </>
                     )}
                   </Button>
@@ -495,7 +495,7 @@ const Upload = () => {
                     variant="outline"
                     className="border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white py-4 px-8 text-lg"
                   >
-                    Skip Upload
+                    {t("upload.skipUpload")}
                   </Button>
                 </>
               )}
@@ -508,24 +508,20 @@ const Upload = () => {
                   <AlertCircle className="w-5 h-5 text-blue-400 mt-0.5" />
                   <div>
                     <h3 className="font-semibold text-blue-400 mb-2">
-                      About HuggingFace Hub Upload
+                      {t("upload.aboutUpload")}
                     </h3>
                     <ul className="text-sm text-gray-300 space-y-1">
                       <li>
-                        • Your dataset will be uploaded to HuggingFace Hub for
-                        sharing and collaboration
+                        • {t("upload.aboutUpload1")}
                       </li>
                       <li>
-                        • You need to be logged in to HuggingFace CLI on the
-                        server
+                        • {t("upload.aboutUpload2")}
                       </li>
                       <li>
-                        • Uploaded datasets can be used for training models and
-                        sharing with the community
+                        • {t("upload.aboutUpload3")}
                       </li>
                       <li>
-                        • You can always upload manually later using the
-                        HuggingFace CLI
+                        • {t("upload.aboutUpload4")}
                       </li>
                     </ul>
                   </div>
@@ -539,21 +535,21 @@ const Upload = () => {
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent className="bg-gray-900 border-gray-700 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete dataset from disk?</AlertDialogTitle>
+            <AlertDialogTitle>{t("upload.deleteQuestion")}</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">
-              This permanently removes <span className="font-mono text-white">{datasetInfo.dataset_repo_id}</span> from your local cache. This action cannot be undone.
+              {t("upload.deleteDescription", { name: datasetInfo.dataset_repo_id })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700">
-              Keep dataset
+              {t("upload.keepDataset")}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteDataset}
               disabled={isDeleting}
               className="bg-red-500 hover:bg-red-600 text-white"
             >
-              {isDeleting ? "Deleting…" : "Delete"}
+              {isDeleting ? t("upload.deleting") : t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

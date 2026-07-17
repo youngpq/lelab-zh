@@ -1,5 +1,6 @@
 import React from "react";
 import { Github, BookOpen } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const DiscordIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg
@@ -13,30 +14,18 @@ const DiscordIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-const links = [
-  {
-    href: "https://github.com/huggingface/lerobot",
-    label: "GitHub",
-    Icon: Github,
-  },
-  {
-    href: "https://huggingface.co/docs/lerobot",
-    label: "Documentation",
-    Icon: BookOpen,
-  },
-  {
-    href: "https://discord.com/invite/s3KuuzsPFb",
-    label: "Discord",
-    Icon: DiscordIcon,
-  },
-];
-
 const Footer: React.FC = () => {
+  const { t } = useTranslation();
+  const links = [
+    { href: "https://github.com/huggingface/lerobot", label: "GitHub", Icon: Github },
+    { href: "https://huggingface.co/docs/lerobot", label: t("footer.documentation"), Icon: BookOpen },
+    { href: "https://discord.com/invite/s3KuuzsPFb", label: "Discord", Icon: DiscordIcon },
+  ];
   return (
     <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-gray-800 bg-black/95">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-4 text-sm text-gray-400 sm:flex-row">
         <span>
-          Powered by{" "}
+          {t("footer.poweredBy")}{" "}
           <a
             href="https://github.com/huggingface/lerobot"
             target="_blank"

@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useHfAuth } from "@/contexts/HfAuthContext";
+import { useTranslation } from "react-i18next";
 
 interface HfAuthDialogProps {
   open: boolean;
@@ -16,6 +17,7 @@ interface HfAuthDialogProps {
 }
 
 const HfAuthDialog: React.FC<HfAuthDialogProps> = ({ open, onOpenChange }) => {
+  const { t } = useTranslation();
   const { auth, refetch } = useHfAuth();
   const [copied, setCopied] = useState(false);
   const [refetching, setRefetching] = useState(false);
@@ -48,11 +50,10 @@ const HfAuthDialog: React.FC<HfAuthDialogProps> = ({ open, onOpenChange }) => {
       <DialogContent className="bg-gray-900 border-gray-800 text-white">
         <DialogHeader>
           <DialogTitle className="text-amber-200">
-            Hugging Face CLI not configured
+            {t("auth.cliNotConfigured")}
           </DialogTitle>
           <DialogDescription className="text-gray-400">
-            Uploads, training, and replay-from-Hub require a logged-in HF CLI.
-            Run this in a terminal:
+            {t("auth.cliExplanation")}
           </DialogDescription>
         </DialogHeader>
         <pre className="bg-gray-950 p-3 rounded border border-gray-700 text-xs sm:text-sm overflow-x-auto flex items-center justify-between gap-2">
@@ -61,7 +62,7 @@ const HfAuthDialog: React.FC<HfAuthDialogProps> = ({ open, onOpenChange }) => {
             type="button"
             onClick={handleCopy}
             className="flex-shrink-0 text-gray-400 hover:text-gray-200 transition-colors"
-            aria-label="Copy command"
+            aria-label={t("common.copy")}
           >
             {copied ? (
               <Check className="w-4 h-4 text-green-400" />
@@ -80,7 +81,7 @@ const HfAuthDialog: React.FC<HfAuthDialogProps> = ({ open, onOpenChange }) => {
           <RefreshCw
             className={`w-4 h-4 mr-2 ${refetching ? "animate-spin" : ""}`}
           />
-          I've logged in — recheck
+          {t("auth.loggedInRecheck")}
         </Button>
       </DialogContent>
     </Dialog>

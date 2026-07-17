@@ -36,6 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useTranslation } from "react-i18next";
 
 interface RecordingConfig {
   leader_port: string;
@@ -75,6 +76,7 @@ interface BackendStatus {
 }
 
 const Recording = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -111,13 +113,13 @@ const Recording = () => {
   useEffect(() => {
     if (!recordingConfig) {
       toast({
-        title: "No Configuration",
-        description: "Please start recording from the main page.",
+        title: t("recording.noConfiguration"),
+        description: t("recording.startFromMain"),
         variant: "destructive",
       });
       navigate("/");
     }
-  }, [recordingConfig, navigate, toast]);
+  }, [recordingConfig, navigate, toast, t]);
 
   // Start recording session when component loads. The ref guard prevents
   // React StrictMode (and any future re-renders) from firing /start-recording
@@ -227,21 +229,21 @@ const Recording = () => {
       if (response.ok) {
         setRecordingSessionStarted(true);
         toast({
-          title: "Recording Started",
-          description: `Started recording ${recordingConfig.num_episodes} episodes`,
+          title: t("recording.started"),
+          description: t("recording.startedDescription", { count: recordingConfig.num_episodes }),
         });
       } else {
         toast({
-          title: "Error Starting Recording",
-          description: data.message || "Failed to start recording session.",
+          title: t("recording.startFailed"),
+          description: data.message || t("recording.failedToStart"),
           variant: "destructive",
         });
         navigate("/");
       }
     } catch (error) {
       toast({
-        title: "Connection Error",
-        description: "Could not connect to the backend server.",
+        title: t("recording.connectionError"),
+        description: t("recording.couldNotConnect"),
         variant: "destructive",
       });
       navigate("/");
@@ -278,12 +280,12 @@ const Recording = () => {
     } catch (error) {
       setOptimisticPhase(null);
       toast({
-        title: "Connection Error",
-        description: "Could not connect to the backend server.",
+        title: t("recording.connectionError"),
+        description: t("recording.couldNotConnect"),
         variant: "destructive",
       });
     }
-  }, [backendStatus, optimisticPhase, baseUrl, fetchWithHeaders, toast]);
+  }, [backendStatus, optimisticPhase, baseUrl, fetchWithHeaders, toast, t]);
 
   const handleRerecordEpisode = useCallback(async () => {
     if (!backendStatus?.available_controls.rerecord_episode) return;
@@ -300,8 +302,8 @@ const Recording = () => {
       if (response.ok) {
         setRerecordTick((t) => t + 1);
         toast({
-          title: "Re-recording Episode",
-          description: `Episode ${backendStatus.current_episode} will be re-recorded.`,
+          title: t("recording.rerecording"),
+          description: t("recording.rerecordingDescription", { episode: backendStatus.current_episode }),
         });
       } else {
         toast({
@@ -312,12 +314,12 @@ const Recording = () => {
       }
     } catch (error) {
       toast({
-        title: "Connection Error",
-        description: "Could not connect to the backend server.",
+        title: t("recording.connectionError"),
+        description: t("recording.couldNotConnect"),
         variant: "destructive",
       });
     }
-  }, [backendStatus, baseUrl, fetchWithHeaders, toast]);
+  }, [backendStatus, baseUrl, fetchWithHeaders, toast, t]);
 
   const handleStopRecording = useCallback(async () => {
     if (!backendStatus?.available_controls.stop_recording) return;
@@ -327,17 +329,17 @@ const Recording = () => {
       });
 
       toast({
-        title: "Stopping recording",
-        description: "Finalizing dataset…",
+        title: t("recording.stopping"),
+        description: t("recording.finalizing"),
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to stop recording.",
+        description: t("recording.failedToStop"),
         variant: "destructive",
       });
     }
-  }, [backendStatus, baseUrl, fetchWithHeaders, toast]);
+  }, [backendStatus, baseUrl, fetchWithHeaders, toast, t]);
 
   const requestStopRecording = useCallback(() => {
     if (!backendStatus?.available_controls.stop_recording) return;
@@ -434,10 +436,10 @@ const Recording = () => {
   const sessionElapsedTime = backendStatus.session_elapsed_seconds || 0;
 
   const getStatusText = () => {
-    if (currentPhase === "recording") return `RECORDING EPISODE ${currentEpisode}`;
-    if (currentPhase === "resetting") return "RESET — GET READY";
-    if (currentPhase === "preparing") return "PREPARING SESSION";
-    return "SESSION COMPLETE";
+    if (currentPhase === "recording") return t("recording.recording", { episode: currentEpisode });
+    if (currentPhase === "resetting") return t("recording.reset");
+    if (currentPhase === "preparing") return t("recording.preparing");
+    return t("recording.complete");
   };
 
   const phaseColor =
@@ -449,10 +451,10 @@ const Recording = () => {
 
   const primaryLabel =
     currentPhase === "recording"
-      ? "End Episode"
+      ? t("recording.endEpisode")
       : currentPhase === "resetting"
-      ? "Start Next Episode"
-      : "Advance";
+      ? t("recording.startNextEpisode")
+      : t("recording.advance");
 
   const PrimaryIcon = currentPhase === "recording" ? SkipForward : Play;
 
@@ -466,14 +468,14 @@ const Recording = () => {
             className="border-gray-500 hover:border-gray-200 text-gray-300 hover:text-white"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Home
+            {t("common.backToHome")}
           </Button>
         </div>
 
         <div className="bg-gray-900 rounded-lg border border-gray-700 p-8">
           <div className="flex justify-end items-center gap-4 mb-6 text-sm text-gray-400">
             <span aria-label={`Episode ${currentEpisode} of ${totalEpisodes}`}>
-              Episode <span className="text-white font-semibold">{currentEpisode}</span> / {totalEpisodes}
+              {t("recording.episode")} <span className="text-white font-semibold">{currentEpisode}</span> / {totalEpisodes}
             </span>
             <span className="font-mono" aria-label={`Total session time ${formatTime(sessionElapsedTime)}`}>
               {formatTime(sessionElapsedTime)}
@@ -482,7 +484,7 @@ const Recording = () => {
               variant="ghost"
               size="icon"
               onClick={toggleMute}
-              aria-label={muted ? "Unmute" : "Mute"}
+              aria-label={muted ? t("recording.unmute") : t("recording.mute")}
               className="h-8 w-8 text-gray-400 hover:text-white hover:bg-gray-800"
             >
               {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
@@ -493,7 +495,7 @@ const Recording = () => {
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-gray-400 hover:text-white hover:bg-gray-800"
-                  aria-label="More actions"
+                  aria-label={t("recording.moreActions")}
                 >
                   <MoreHorizontal className="w-5 h-5" />
                 </Button>
@@ -509,7 +511,7 @@ const Recording = () => {
                   className="focus:bg-gray-800 focus:text-white"
                 >
                   <RotateCcw className="w-4 h-4 mr-2" />
-                  Re-record episode
+                  {t("recording.rerecordEpisode")}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={requestStopRecording}
@@ -517,7 +519,7 @@ const Recording = () => {
                   className="text-red-400 focus:bg-gray-800 focus:text-red-300"
                 >
                   <Square className="w-4 h-4 mr-2" />
-                  Stop recording
+                  {t("recording.stopRecording")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

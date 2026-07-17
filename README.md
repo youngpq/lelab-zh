@@ -1,5 +1,7 @@
 <h1 align="center">🦾 LeLab</h1>
 
+> 中文发行版说明：这是基于 [huggingface/leLab](https://github.com/huggingface/leLab) 的社区汉化 fork，不是 Hugging Face 的官方发布渠道。中文安装、发布与贡献说明见 [README.zh-CN.md](README.zh-CN.md)。
+
 <p align="center">
   <b>The official graphical interface for <a href="https://github.com/huggingface/lerobot">LeRobot</a>.</b>
 </p>
@@ -71,7 +73,7 @@ A page will automatically open in your browser and you are ready to go.
 PRs welcome. Hot-reload mode for working on the code:
 
 ```bash
-lelab --dev
+lelab-zh --dev
 ```
 
 Vite on `:8080`, uvicorn `--reload` on `:8000`.

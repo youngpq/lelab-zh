@@ -35,6 +35,7 @@ import { JobCheckpoint, listJobCheckpoints } from "@/lib/checkpointsApi";
 import CheckpointDropdown from "@/components/jobs/CheckpointDropdown";
 import InferenceModal from "@/components/landing/InferenceModal";
 import { useRobots } from "@/hooks/useRobots";
+import { useTranslation } from "react-i18next";
 
 const POLL_INTERVAL_MS = 1000;
 const MAX_LOG_LINES = 5000;
@@ -97,6 +98,7 @@ function configToRequest(c: TrainingConfig): TrainingRequest {
 }
 
 const ConfigurationMode: React.FC = () => {
+  const { t } = useTranslation();
   const { baseUrl, fetchWithHeaders } = useApi();
   const { auth } = useHfAuth();
   const { toast } = useToast();
@@ -195,7 +197,7 @@ const ConfigurationMode: React.FC = () => {
 
   const handleStart = async () => {
     if (!trainingConfig.dataset_repo_id.trim()) {
-      toast({ title: "Error", description: "Dataset repository ID is required", variant: "destructive" });
+      toast({ title: t("common.error"), description: t("training.datasetRequired"), variant: "destructive" });
       return;
     }
 
@@ -229,11 +231,11 @@ const ConfigurationMode: React.FC = () => {
     setIsStarting(true);
     try {
       const job = await startTrainingJob(baseUrl, fetchWithHeaders, configToRequest(trainingConfig));
-      toast({ title: "Training Started", description: job.name });
+      toast({ title: t("training.started"), description: job.name });
       navigate(`/training/${job.id}`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      toast({ title: "Error", description: msg, variant: "destructive" });
+      toast({ title: t("common.error"), description: msg, variant: "destructive" });
       // If the failure was the 409 case, refresh our running-job knowledge.
       listJobs(baseUrl, fetchWithHeaders, 200)
         .then((j) =>
@@ -254,7 +256,7 @@ const ConfigurationMode: React.FC = () => {
           <TrainingHeader />
           <div className="flex items-center justify-center py-24 text-slate-400">
             <Loader2 className="w-6 h-6 animate-spin mr-3" />
-            Checking training environment…
+            {t("training.checkingEnvironment")}
           </div>
         </div>
       </div>
@@ -284,11 +286,11 @@ const ConfigurationMode: React.FC = () => {
     (targetRequiresAuth && !authenticated) ||
     targetMissingFlavor;
   const startTooltip = localBlocked
-    ? "Another local training is already running"
+    ? t("training.anotherRunning")
     : targetRequiresAuth && !authenticated
-    ? "Log in to Hugging Face to use cloud compute"
+    ? t("training.loginForCloud")
     : targetMissingFlavor
-    ? "Select a hardware flavor"
+    ? t("training.selectHardware")
     : undefined;
 
   return (
@@ -316,11 +318,11 @@ const ConfigurationMode: React.FC = () => {
               >
                 {isStarting ? (
                   <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Starting…
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" /> {t("training.starting")}
                   </>
                 ) : (
                   <>
-                    <Play className="w-5 h-5 mr-2" /> Start Training
+                    <Play className="w-5 h-5 mr-2" /> {t("training.start")}
                   </>
                 )}
               </Button>
@@ -357,6 +359,7 @@ const ConfigurationMode: React.FC = () => {
 };
 
 const MonitoringMode: React.FC<{ jobId: string }> = ({ jobId }) => {
+  const { t } = useTranslation();
   const { baseUrl, fetchWithHeaders } = useApi();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -488,14 +491,14 @@ const MonitoringMode: React.FC<{ jobId: string }> = ({ jobId }) => {
 
   const handleStop = async () => {
     if (!job) return;
-    if (!window.confirm("Stop this run?")) return;
+    if (!window.confirm(t("training.stopRunQuestion"))) return;
     try {
       const next = await stopJob(baseUrl, fetchWithHeaders, job.id);
       setJob(next);
-      toast({ title: "Stopping…" });
+      toast({ title: t("jobs.stopping") });
     } catch (e) {
       toast({
-        title: "Stop failed",
+        title: t("jobs.stopFailed"),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
@@ -504,14 +507,14 @@ const MonitoringMode: React.FC<{ jobId: string }> = ({ jobId }) => {
 
   const handleDelete = async () => {
     if (!job) return;
-    if (!window.confirm("Delete this run? This wipes the output directory.")) return;
+    if (!window.confirm(t("training.deleteRunQuestion"))) return;
     try {
       await deleteJob(baseUrl, fetchWithHeaders, job.id);
-      toast({ title: "Job removed" });
+      toast({ title: t("jobs.removed") });
       navigate("/");
     } catch (e) {
       toast({
-        title: "Delete failed",
+        title: t("jobs.deleteFailed"),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
@@ -523,9 +526,9 @@ const MonitoringMode: React.FC<{ jobId: string }> = ({ jobId }) => {
       <div className="min-h-screen bg-slate-900 text-white p-4">
         <div className="max-w-7xl mx-auto space-y-4">
           <Button variant="ghost" onClick={() => navigate("/")} className="text-slate-400">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Jobs
+            <ArrowLeft className="w-4 h-4 mr-2" /> {t("training.backToJobs")}
           </Button>
-          <p className="text-red-300">Couldn't load job {jobId}: {error}</p>
+          <p className="text-red-300">{t("training.loadJobFailed", { id: jobId, error })}</p>
         </div>
       </div>
     );
@@ -535,7 +538,7 @@ const MonitoringMode: React.FC<{ jobId: string }> = ({ jobId }) => {
     return (
       <div className="min-h-screen bg-slate-900 text-white p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-center py-24 text-slate-400">
-          <Loader2 className="w-6 h-6 animate-spin mr-3" /> Loading job…
+          <Loader2 className="w-6 h-6 animate-spin mr-3" /> {t("training.loadingJob")}
         </div>
       </div>
     );
@@ -549,7 +552,7 @@ const MonitoringMode: React.FC<{ jobId: string }> = ({ jobId }) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button variant="ghost" onClick={() => navigate("/")} className="text-slate-400 hover:text-white">
-              <ArrowLeft className="w-4 h-4 mr-2" /> Jobs
+              <ArrowLeft className="w-4 h-4 mr-2" /> {t("jobs.title")}
             </Button>
             <div>
               <div className="flex items-center gap-2">
@@ -592,11 +595,11 @@ const MonitoringMode: React.FC<{ jobId: string }> = ({ jobId }) => {
           </div>
           {isRunning ? (
             <Button onClick={handleStop} className="bg-red-500 hover:bg-red-600 text-white">
-              <Square className="w-4 h-4 mr-2" /> Stop
+              <Square className="w-4 h-4 mr-2" /> {t("common.stop")}
             </Button>
           ) : (
             <Button onClick={handleDelete} variant="ghost" className="text-slate-400 hover:text-white">
-              <Trash2 className="w-4 h-4 mr-2" /> Delete
+              <Trash2 className="w-4 h-4 mr-2" /> {t("common.delete")}
             </Button>
           )}
         </div>
@@ -608,9 +611,9 @@ const MonitoringMode: React.FC<{ jobId: string }> = ({ jobId }) => {
           formatTime={formatTime}
         />
         <div className="bg-slate-800/40 border border-slate-700 rounded-lg p-4 flex items-center gap-3">
-          <span className="text-sm font-semibold text-slate-300">Run inference</span>
+          <span className="text-sm font-semibold text-slate-300">{t("training.runInference")}</span>
           {checkpoints.length === 0 ? (
-            <span className="text-xs text-slate-500">No checkpoints yet — wait for the first save.</span>
+            <span className="text-xs text-slate-500">{t("training.noCheckpointsYet")}</span>
           ) : (
             <>
               <CheckpointDropdown
@@ -624,7 +627,7 @@ const MonitoringMode: React.FC<{ jobId: string }> = ({ jobId }) => {
                 className="bg-green-500 hover:bg-green-600 text-white"
               >
                 <Play className="w-4 h-4 mr-2" />
-                Run on robot
+                {t("training.runOnRobot")}
               </Button>
             </>
           )}

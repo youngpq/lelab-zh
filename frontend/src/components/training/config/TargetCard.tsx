@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { ConfigComponentProps } from "../types";
 import { RunnerFlavor } from "@/lib/jobsApi";
+import { useTranslation } from "react-i18next";
 
 interface TargetCardProps extends ConfigComponentProps {
   authenticated: boolean;
@@ -34,6 +35,7 @@ const TargetCard: React.FC<TargetCardProps> = ({
   flavors,
   loading,
 }) => {
+  const { t } = useTranslation();
   const target = config.target;
   const value =
     target.runner === "local" ? "local" : `hf:${target.flavor ?? ""}`;
@@ -50,17 +52,17 @@ const TargetCard: React.FC<TargetCardProps> = ({
   return (
     <Card className="bg-slate-800/50 border-slate-700 rounded-xl">
       <CardHeader>
-        <CardTitle className="text-white">Compute target</CardTitle>
+        <CardTitle className="text-white">{t("training.computeTarget")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div>
-          <Label className="text-slate-300">Run training on</Label>
+          <Label className="text-slate-300">{t("training.runTrainingOn")}</Label>
           <Select value={value} onValueChange={handleChange}>
             <SelectTrigger className="bg-slate-900 border-slate-600 text-white rounded-lg mt-1">
-              <SelectValue placeholder={loading ? "Loading…" : "Select target"} />
+              <SelectValue placeholder={loading ? t("common.loading") : t("training.selectTarget")} />
             </SelectTrigger>
             <SelectContent className="bg-slate-800 border-slate-600 text-white">
-              <SelectItem value="local">Local — your machine (free)</SelectItem>
+              <SelectItem value="local">{t("training.localFree")}</SelectItem>
               {flavors.map((f) => (
                 <SelectItem
                   key={f.name}
@@ -70,7 +72,7 @@ const TargetCard: React.FC<TargetCardProps> = ({
                   {formatFlavorLine(f)}
                   {!authenticated && (
                     <span className="text-amber-300 ml-2 text-xs">
-                      log in to HF
+                      {t("training.loginToHF")}
                     </span>
                   )}
                 </SelectItem>
@@ -78,8 +80,7 @@ const TargetCard: React.FC<TargetCardProps> = ({
             </SelectContent>
           </Select>
           <p className="text-xs text-slate-500 mt-1">
-            Cost shown is per running hour. Final policy uploads to your HF
-            account when training completes.
+            {t("training.costHint")}
           </p>
         </div>
       </CardContent>

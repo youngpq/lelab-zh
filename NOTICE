@@ -1,0 +1,7 @@
+LeLab 中文版（lelab-zh）
+
+本项目基于 Hugging Face, Inc. 的 LeLab 项目修改：
+https://github.com/huggingface/leLab
+
+上游项目采用 Apache License 2.0 授权。原始 LICENSE 已随本项目保留。
+本 fork 包含中文界面、独立发行名称与发布配置等修改；并非 Hugging Face 官方发布渠道。

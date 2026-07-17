@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
 
 type Peer = { id: string; openedAt: number; lastSeen: number };
 
@@ -8,6 +9,7 @@ const HEARTBEAT_MS = 1000;
 const PEER_TIMEOUT_MS = 3000;
 
 const SingleTabGuard = ({ children }: { children: ReactNode }) => {
+  const { t } = useTranslation();
   const [isPrimary, setIsPrimary] = useState(true);
   const peersRef = useRef<Map<string, Peer>>(new Map());
   const myIdRef = useRef<string>("");
@@ -119,13 +121,12 @@ const SingleTabGuard = ({ children }: { children: ReactNode }) => {
         >
           <div className="mx-4 max-w-md space-y-4 rounded-lg border bg-background p-6 text-center shadow-lg">
             <h2 className="text-lg font-semibold">
-              LeLab is already open in another tab
+              {t("teleoperation.alreadyOpen")}
             </h2>
             <p className="text-sm text-muted-foreground">
-              Only one tab can control the robot at a time. Switch back to the
-              original tab, or take over here — the other tab will lock.
+              {t("teleoperation.oneTabOnly")}
             </p>
-            <Button onClick={takeOver}>Use this tab</Button>
+            <Button onClick={takeOver}>{t("teleoperation.useThisTab")}</Button>
           </div>
         </div>
       )}

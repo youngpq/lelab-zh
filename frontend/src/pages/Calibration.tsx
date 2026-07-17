@@ -38,6 +38,7 @@ import { isMotorRangeComplete } from "@/lib/calibrationTargets";
 import CameraConfiguration, {
   CameraConfig,
 } from "@/components/recording/CameraConfiguration";
+import { useTranslation } from "react-i18next";
 
 const DISCONTINUITY_ERROR_PREFIX = "Motor discontinuity detected";
 
@@ -74,6 +75,7 @@ interface RobotRecord {
 }
 
 const Calibration = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const robotName =
@@ -233,16 +235,16 @@ const Calibration = () => {
   const handleStartCalibration = async () => {
     if (!robotName) {
       toast({
-        title: "No robot selected",
-        description: "Open Calibration from a robot's gear icon on the Landing page.",
+        title: t("calibration.noRobotSelected"),
+        description: t("calibration.openFromRobot"),
         variant: "destructive",
       });
       return;
     }
     if (!port) {
       toast({
-        title: "Missing port",
-        description: "Set the device's serial port before starting.",
+        title: t("calibration.missingPort"),
+        description: t("calibration.setPortFirst"),
         variant: "destructive",
       });
       return;
@@ -270,15 +272,15 @@ const Calibration = () => {
 
       if (result.success) {
         toast({
-          title: "Calibration Started",
-          description: `Calibration started for ${deviceType}`,
+          title: t("calibration.started"),
+          description: t("calibration.startedFor", { device: deviceType }),
         });
         setIsPolling(true);
       } else {
         calibrationActiveRef.current = false;
         toast({
-          title: "Calibration Failed",
-          description: result.message || "Failed to start calibration",
+          title: t("calibration.failed"),
+          description: result.message || t("calibration.failedToStart"),
           variant: "destructive",
         });
       }
@@ -287,7 +289,7 @@ const Calibration = () => {
       console.error("Error starting calibration:", error);
       toast({
         title: "Error",
-        description: "Failed to start calibration",
+        description: t("calibration.failedToStart"),
         variant: "destructive",
       });
     }
@@ -304,13 +306,13 @@ const Calibration = () => {
       if (result.success) {
         // The 200ms polling interval will pick up the stopped state.
         toast({
-          title: "Calibration Stopped",
-          description: "Calibration has been stopped",
+          title: t("calibration.stopped"),
+          description: t("calibration.stoppedDescription"),
         });
       } else {
         toast({
           title: "Error",
-          description: result.message || "Failed to stop calibration",
+          description: result.message || t("calibration.failedToStop"),
           variant: "destructive",
         });
       }
@@ -318,7 +320,7 @@ const Calibration = () => {
       console.error("Error stopping calibration:", error);
       toast({
         title: "Error",
-        description: "Failed to stop calibration",
+        description: t("calibration.failedToStop"),
         variant: "destructive",
       });
     }
@@ -337,13 +339,13 @@ const Calibration = () => {
 
       if (data.success) {
         toast({
-          title: "Step Completed",
+          title: t("calibration.stepCompleted"),
           description: data.message,
         });
       } else {
         toast({
-          title: "Step Failed",
-          description: data.message || "Could not complete step",
+          title: t("calibration.stepFailed"),
+          description: data.message || t("calibration.couldNotCompleteStep"),
           variant: "destructive",
         });
       }
@@ -351,7 +353,7 @@ const Calibration = () => {
       console.error("Error completing step:", error);
       toast({
         title: "Error",
-        description: "Could not complete calibration step",
+        description: t("calibration.couldNotCompleteStep"),
         variant: "destructive",
       });
     }
@@ -541,7 +543,9 @@ const Calibration = () => {
           <div className="flex items-center gap-3">
             <Logo iconOnly />
             <h1 className="text-3xl font-bold">
-              {robotName ? `Calibrate "${robotName}"` : "Device Calibration"}
+              {robotName
+                ? t("calibration.titleForRobot", { name: robotName })
+                : t("calibration.title")}
             </h1>
           </div>
         </div>
@@ -550,9 +554,7 @@ const Calibration = () => {
           <Alert className="mb-6 bg-amber-900/40 border-amber-700 text-amber-100">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Open Calibration from a robot's gear icon on the Landing page.
-              Each robot has its own calibration; running this page directly is
-              not supported.
+              {t("calibration.openFromRobot")}
             </AlertDescription>
           </Alert>
         )}
@@ -562,7 +564,7 @@ const Calibration = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-slate-200">
                 <Settings className="w-5 h-5 text-blue-400" />
-                Configuration
+                {t("calibration.configuration")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -571,21 +573,21 @@ const Calibration = () => {
                   htmlFor="deviceType"
                   className="text-sm font-medium text-slate-300"
                 >
-                  Device Type *
+                  {t("calibration.deviceType")}
                 </Label>
                 <Select
                   value={deviceType}
                   onValueChange={handleDeviceTypeChange}
                 >
                   <SelectTrigger className="bg-slate-700 border-slate-600 text-white rounded-md">
-                    <SelectValue placeholder="Select device type" />
+                    <SelectValue placeholder={t("calibration.selectDeviceType")} />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700 text-white">
                     <SelectItem value="teleop" className="hover:bg-slate-700">
-                      Teleoperator (Leader)
+                      {t("calibration.teleoperator")}
                     </SelectItem>
                     <SelectItem value="robot" className="hover:bg-slate-700">
-                      Robot (Follower)
+                      {t("calibration.robot")}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -596,7 +598,7 @@ const Calibration = () => {
                   htmlFor="port"
                   className="text-sm font-medium text-slate-300"
                 >
-                  Port *
+                  {t("calibration.port")}
                 </Label>
                 <div className="flex gap-2">
                   <Input
@@ -625,7 +627,7 @@ const Calibration = () => {
                     disabled={!robotName || !deviceType || !port}
                   >
                     <Play className="w-5 h-5 mr-2" />
-                    Start Calibration
+                    {t("calibration.start")}
                   </Button>
                 ) : (
                   <Button
@@ -634,7 +636,7 @@ const Calibration = () => {
                     className="w-full rounded-full py-6 text-lg"
                   >
                     <Square className="w-5 h-5 mr-2" />
-                    Cancel Calibration
+                    {t("calibration.cancel")}
                   </Button>
                 )}
               </div>
@@ -642,7 +644,7 @@ const Calibration = () => {
               {robot && (
                 <div className="space-y-2 pt-2">
                   <div className="text-sm font-medium text-slate-300">
-                    Robot calibration
+                    {t("calibration.robotCalibration")}
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     {robot.leader_config ? (
@@ -655,7 +657,7 @@ const Calibration = () => {
                         robot.leader_config ? "text-slate-200" : "text-slate-400"
                       }
                     >
-                      Leader (Teleoperator)
+                      {t("calibration.leader")}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
@@ -671,7 +673,7 @@ const Calibration = () => {
                           : "text-slate-400"
                       }
                     >
-                      Follower (Robot)
+                      {t("calibration.follower")}
                     </span>
                   </div>
                 </div>
@@ -683,12 +685,12 @@ const Calibration = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-slate-200">
                 <Activity className="w-5 h-5 text-teal-400" />
-                Status
+                {t("common.status")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-md">
-                <span className="text-slate-300">Status:</span>
+                <span className="text-slate-300">{t("common.status")}:</span>
                 <Badge
                   className={`${statusDisplay.color} text-white rounded-md`}
                 >

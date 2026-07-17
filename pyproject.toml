@@ -3,12 +3,12 @@ requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "LeLab"
-version = "0.1.0"
-description = "LeRobot Lab - A web interface for robotics with lerobot integration"
+name = "lelab-zh"
+version = "0.1.0.post1"
+description = "LeLab 中文版 - LeRobot 的图形化界面"
 readme = "README.md"
 license = "Apache-2.0"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.12"
 dependencies = [
     "fastapi[standard]>=0.115.12",
@@ -35,7 +35,12 @@ test = [
 ]
 
 [project.scripts]
-lelab = "lelab.scripts.lelab:main"
+lelab-zh = "lelab.scripts.lelab:main"
+
+[project.urls]
+Homepage = "https://github.com/youngpq/lelab-zh"
+Source = "https://github.com/youngpq/lelab-zh"
+Upstream = "https://github.com/huggingface/leLab"
 
 [tool.setuptools.packages.find]
 where = ["."]

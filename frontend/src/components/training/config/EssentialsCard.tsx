@@ -16,6 +16,7 @@ import DatasetCombobox from '@/components/replay/DatasetCombobox';
 import { DatasetItem } from '@/lib/replayApi';
 import WandbInstallDialog from '../WandbInstallDialog';
 import { useApi } from '@/contexts/ApiContext';
+import { useTranslation } from 'react-i18next';
 
 interface EssentialsCardProps extends ConfigComponentProps {
   datasets: DatasetItem[];
@@ -23,6 +24,7 @@ interface EssentialsCardProps extends ConfigComponentProps {
 }
 
 const EssentialsCard: React.FC<EssentialsCardProps> = ({ config, updateConfig, datasets, datasetsLoading }) => {
+  const { t } = useTranslation();
   const { baseUrl, fetchWithHeaders } = useApi();
   const [wandbDialogOpen, setWandbDialogOpen] = useState(false);
   const [wandbInstallHint, setWandbInstallHint] = useState('pip install wandb');
@@ -55,11 +57,11 @@ const EssentialsCard: React.FC<EssentialsCardProps> = ({ config, updateConfig, d
   return (
     <Card className="bg-slate-800/50 border-slate-700 rounded-xl">
       <CardHeader>
-        <CardTitle className="text-white">Run Configuration</CardTitle>
+        <CardTitle className="text-white">{t("training.runConfiguration")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <Label className="text-slate-300">Dataset Repository ID *</Label>
+          <Label className="text-slate-300">{t("training.datasetRepository")}</Label>
           <div className="mt-1">
             <DatasetCombobox
               datasets={datasets}
@@ -71,14 +73,14 @@ const EssentialsCard: React.FC<EssentialsCardProps> = ({ config, updateConfig, d
             />
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            HuggingFace Hub dataset repository ID
+            {t("training.datasetRepositoryHint")}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="policy_type" className="text-slate-300">
-              Policy
+              {t("training.policy")}
             </Label>
             <Select
               value={config.policy_type}
@@ -103,7 +105,7 @@ const EssentialsCard: React.FC<EssentialsCardProps> = ({ config, updateConfig, d
 
           <div>
             <Label htmlFor="steps" className="text-slate-300">
-              Training Steps
+              {t("training.steps")}
             </Label>
             <NumberInput
               id="steps"
@@ -117,7 +119,7 @@ const EssentialsCard: React.FC<EssentialsCardProps> = ({ config, updateConfig, d
 
           <div>
             <Label htmlFor="batch_size" className="text-slate-300">
-              Batch Size
+              {t("training.batchSize")}
             </Label>
             <NumberInput
               id="batch_size"
@@ -137,7 +139,7 @@ const EssentialsCard: React.FC<EssentialsCardProps> = ({ config, updateConfig, d
               className="data-[state=checked]:bg-green-500"
             />
             <Label htmlFor="wandb_enable" className="text-slate-300">
-              Enable Weights & Biases
+              {t("training.enableWandb")}
             </Label>
           </div>
         </div>
@@ -151,7 +153,7 @@ const EssentialsCard: React.FC<EssentialsCardProps> = ({ config, updateConfig, d
         {config.wandb_enable && (
           <div>
             <Label htmlFor="wandb_project" className="text-slate-300">
-              W&B Project Name
+              {t("training.wandbProject")}
             </Label>
             <Input
               id="wandb_project"

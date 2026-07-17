@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Download, Loader2 } from "lucide-react";
 import { useApi } from "@/contexts/ApiContext";
 import { importModel } from "@/lib/jobsApi";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   open: boolean;
@@ -21,6 +22,7 @@ interface Props {
 }
 
 const ImportModelModal: React.FC<Props> = ({ open, onOpenChange, onImported }) => {
+  const { t } = useTranslation();
   const { baseUrl, fetchWithHeaders } = useApi();
   const [source, setSource] = useState("");
   const [name, setName] = useState("");
@@ -50,18 +52,17 @@ const ImportModelModal: React.FC<Props> = ({ open, onOpenChange, onImported }) =
       <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[520px] p-8">
         <DialogHeader>
           <DialogTitle className="text-white text-center text-2xl font-bold">
-            Import a model
+            {t("jobs.importTitle")}
           </DialogTitle>
           <DialogDescription className="text-gray-400 text-center">
-            Point at a local directory or a Hugging Face repo. It appears as a
-            job you can run inference on.
+            {t("jobs.importDescription")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="source" className="text-sm font-medium text-gray-300">
-              Local path or Hugging Face repo id
+              {t("jobs.modelSource")}
             </Label>
             <Input
               id="source"
@@ -73,13 +74,13 @@ const ImportModelModal: React.FC<Props> = ({ open, onOpenChange, onImported }) =
           </div>
           <div className="space-y-2">
             <Label htmlFor="name" className="text-sm font-medium text-gray-300">
-              Display name (optional)
+              {t("jobs.displayName")}
             </Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="My imported policy"
+              placeholder={t("jobs.importTitle")}
               className="bg-gray-800 border-gray-700 text-white"
             />
           </div>
@@ -102,14 +103,14 @@ const ImportModelModal: React.FC<Props> = ({ open, onOpenChange, onImported }) =
               ) : (
                 <Download className="w-4 h-4 mr-2" />
               )}
-              {submitting ? "Importing…" : "Import"}
+              {submitting ? t("jobs.importing") : t("jobs.import")}
             </Button>
             <Button
               onClick={() => onOpenChange(false)}
               variant="outline"
               className="border-gray-500 px-8 text-zinc-400 bg-zinc-900 hover:bg-zinc-800"
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
           </div>
         </div>

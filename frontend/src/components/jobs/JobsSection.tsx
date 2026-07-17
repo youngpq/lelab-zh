@@ -26,6 +26,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ChevronRight, Download, RefreshCw, Search } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const LIMIT = 10;
 
@@ -42,6 +43,7 @@ const isHubJobActive = (h: HubJob) =>
 const JobsSection: React.FC = () => {
   const { baseUrl, fetchWithHeaders } = useApi();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [jobs, setJobs] = useState<JobRecord[]>([]);
   const [hubJobs, setHubJobs] = useState<HubJob[]>([]);
@@ -117,11 +119,11 @@ const JobsSection: React.FC = () => {
   const handleStop = async (id: string) => {
     try {
       await stopJob(baseUrl, fetchWithHeaders, id);
-      toast({ title: "Job stopping" });
+      toast({ title: t("jobs.stopping") });
       refresh();
     } catch (e) {
       toast({
-        title: "Stop failed",
+        title: t("jobs.stopFailed"),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
@@ -137,11 +139,11 @@ const JobsSection: React.FC = () => {
   const handleDelete = async (id: string) => {
     try {
       await deleteJob(baseUrl, fetchWithHeaders, id);
-      toast({ title: "Job removed" });
+      toast({ title: t("jobs.removed") });
       refresh();
     } catch (e) {
       toast({
-        title: "Delete failed",
+        title: t("jobs.deleteFailed"),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
@@ -247,16 +249,16 @@ const JobsSection: React.FC = () => {
   return (
     <section className="space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-white">Jobs</h2>
+        <h2 className="text-lg font-semibold text-white">{t("jobs.title")}</h2>
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search jobs"
+              placeholder={t("jobs.search")}
               className="h-8 w-48 sm:w-60 pl-8 bg-slate-800/50 border-slate-700 text-sm text-white placeholder:text-slate-500"
-              aria-label="Search jobs"
+              aria-label={t("jobs.search")}
             />
           </div>
           <Button
@@ -266,33 +268,33 @@ const JobsSection: React.FC = () => {
             className="h-8 border-slate-700 bg-slate-800/50 text-slate-200 hover:text-white"
           >
             <Download className="w-3.5 h-3.5 mr-1.5" />
-            Import model
+            {t("jobs.importModel")}
           </Button>
           <Button
             variant="ghost"
             size="icon"
             onClick={refresh}
             className="h-7 w-7 text-slate-400 hover:text-white"
-            aria-label="Refresh jobs"
+            aria-label={t("common.refresh")}
           >
             <RefreshCw className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
-      {error ? <p className="text-sm text-red-300">Couldn't load jobs: {error}</p> : null}
+      {error ? <p className="text-sm text-red-300">{t("jobs.loadFailed", { error })}</p> : null}
 
       <Collapsible defaultOpen>
         <CollapsibleTrigger className="group flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-slate-400 hover:text-white transition-colors">
           <ChevronRight className="w-3.5 h-3.5 transition-transform group-data-[state=open]:rotate-90" />
-          Local jobs ({localActive.length})
+          {t("jobs.localJobs", { count: localActive.length })}
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-3">
           {localActive.length === 0 ? (
             <p className="text-sm text-slate-500">
               {query
-                ? "No local jobs match your search."
-                : "No active local jobs. Start one from the Training page."}
+                ? t("jobs.noLocalMatch")
+                : t("jobs.noActiveLocal")}
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -316,7 +318,7 @@ const JobsSection: React.FC = () => {
           <Collapsible defaultOpen>
             <CollapsibleTrigger className="group flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-slate-400 hover:text-white transition-colors">
               <ChevronRight className="w-3.5 h-3.5 transition-transform group-data-[state=open]:rotate-90" />
-              Imported models ({importedJobs.length})
+              {t("jobs.importedModels", { count: importedJobs.length })}
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-3">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -340,22 +342,20 @@ const JobsSection: React.FC = () => {
       <Collapsible defaultOpen>
         <CollapsibleTrigger className="group flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-slate-400 hover:text-white transition-colors">
           <ChevronRight className="w-3.5 h-3.5 transition-transform group-data-[state=open]:rotate-90" />
-          Online jobs (
-          {trackedCloudActive.length +
+          {t("jobs.onlineJobs", { count: trackedCloudActive.length +
             untrackedHubActive.length +
-            untrackedHubModels.length}
-          )
+            untrackedHubModels.length })}
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-3">
           {!hubAuthenticated && trackedCloudJobs.length === 0 ? (
             <p className="text-sm text-slate-500">
-              Sign in with Hugging Face to see your cloud jobs.
+              {t("jobs.signInForCloud")}
             </p>
           ) : trackedCloudActive.length === 0 &&
             untrackedHubActive.length === 0 &&
             untrackedHubModels.length === 0 ? (
             <p className="text-sm text-slate-500">
-              {query ? "No online jobs match your search." : "No active cloud jobs."}
+              {query ? t("jobs.noOnlineMatch") : t("jobs.noActiveCloud")}
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -383,7 +383,7 @@ const JobsSection: React.FC = () => {
         <Collapsible>
           <CollapsibleTrigger className="group flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400 hover:text-white transition-colors">
             <ChevronRight className="w-3.5 h-3.5 transition-transform group-data-[state=open]:rotate-90" />
-            Untracked ({untrackedCount})
+            {t("jobs.untracked", { count: untrackedCount })}
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-3">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -23,6 +23,7 @@ import CameraConfiguration, {
 } from "@/components/recording/CameraConfiguration";
 import { useHfAuth } from "@/contexts/HfAuthContext";
 import { RobotRecord } from "@/hooks/useRobots";
+import { useTranslation } from "react-i18next";
 
 interface RecordingModalProps {
   open: boolean;
@@ -67,6 +68,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
   onStart,
   releaseStreamsRef,
 }) => {
+  const { t } = useTranslation();
   const { auth } = useHfAuth();
 
   const canStart = !!robot && robot.is_clean;
@@ -81,40 +83,38 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
             </div>
           </div>
           <DialogTitle className="text-white text-center text-2xl font-bold">
-            Configure Recording
+            {t("recording.configure")}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-6 py-4">
           <DialogDescription className="text-gray-400 text-base leading-relaxed text-center">
-            Pick a configured robot and dataset parameters for recording.
+            {t("recording.configureDescription")}
           </DialogDescription>
 
           <div className="grid grid-cols-1 gap-6">
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white border-b border-gray-700 pb-2">
-                Robot Configuration
+                {t("recording.robotConfiguration")}
               </h3>
               {!robot ? (
                 <Alert className="bg-amber-900/40 border-amber-700 text-amber-100">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    Select and configure a robot on the Landing page before
-                    recording.
+                    {t("recording.selectRobotBeforeRecording")}
                   </AlertDescription>
                 </Alert>
               ) : !robot.is_clean ? (
                 <Alert className="bg-amber-900/40 border-amber-700 text-amber-100">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    <strong>{robot.name}</strong> is missing a calibration.
-                    Configure it before recording.
+                    {t("landing.robotMissingCalibration", { name: robot.name })}
                   </AlertDescription>
                 </Alert>
               ) : (
                 <div className="flex items-center gap-2 text-sm">
                   <CheckCircle className="w-4 h-4 text-green-400" />
                   <span className="text-slate-200">
-                    Recording with <strong>{robot.name}</strong>
+                    {t("recording.recordingWith", { name: robot.name })}
                   </span>
                 </div>
               )}
@@ -122,7 +122,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
 
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-white border-b border-gray-700 pb-2">
-                Dataset Configuration
+                {t("recording.datasetConfiguration")}
               </h3>
               <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
@@ -130,7 +130,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
                     htmlFor="datasetName"
                     className="text-sm font-medium text-gray-300"
                   >
-                    Dataset Name *
+                    {t("recording.datasetName")}
                   </Label>
                   <Input
                     id="datasetName"
@@ -144,21 +144,19 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
                     className="bg-gray-800 border-gray-700 text-white"
                   />
                   <p className="text-xs text-gray-500">
-                    Letters, numbers, <code>.</code> <code>_</code>{" "}
-                    <code>-</code> only — other characters become{" "}
-                    <code>_</code>.
+                    {t("recording.datasetNameHint")}
                   </p>
                   {datasetName &&
                     (auth.status === "authenticated" ? (
                       <p className="text-xs text-gray-500">
-                        Will be saved as{" "}
+                        {t("recording.savedAs")}{" "}
                         <span className="text-gray-300 font-mono">
                           {auth.username}/{datasetName}
                         </span>
                       </p>
                     ) : auth.status === "unauthenticated" ? (
                       <p className="text-xs text-amber-400/80">
-                        Log in to Hugging Face to set the repository owner.
+                        {t("recording.loginForOwner")}
                       </p>
                     ) : null)}
                 </div>
@@ -167,7 +165,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
                     htmlFor="singleTask"
                     className="text-sm font-medium text-gray-300"
                   >
-                    Task Description *
+                    {t("recording.taskDescription")}
                   </Label>
                   <Input
                     id="singleTask"
@@ -182,7 +180,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
                     htmlFor="numEpisodes"
                     className="text-sm font-medium text-gray-300"
                   >
-                    Number of Episodes
+                    {t("recording.episodes")}
                   </Label>
                   <NumberInput
                     id="numEpisodes"
@@ -201,7 +199,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
                       htmlFor="episodeTimeS"
                       className="text-sm font-medium text-gray-300"
                     >
-                      Episode duration (seconds)
+                      {t("recording.episodeDuration")}
                     </Label>
                     <NumberInput
                       id="episodeTimeS"
@@ -218,7 +216,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
                       htmlFor="resetTimeS"
                       className="text-sm font-medium text-gray-300"
                     >
-                      Reset duration (seconds)
+                      {t("recording.resetDuration")}
                     </Label>
                     <NumberInput
                       id="resetTimeS"
@@ -244,7 +242,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
 
             <Collapsible className="space-y-4 group">
               <CollapsibleTrigger className="flex items-center justify-between w-full text-lg font-semibold text-white border-b border-gray-700 pb-2">
-                <span>Advanced Parameters</span>
+                <span>{t("recording.advanced")}</span>
                 <ChevronDown className="w-4 h-4 transition-transform group-data-[state=open]:rotate-180" />
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-3">
@@ -262,12 +260,10 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
                       htmlFor="streamingEncoding"
                       className="text-sm font-medium text-gray-200 cursor-pointer"
                     >
-                      Streaming video encoding
+                      {t("recording.streamingEncoding")}
                     </Label>
                     <p className="text-xs text-gray-500">
-                      Encodes frames in real time during capture so each
-                      episode saves almost instantly. Uncheck to fall back to
-                      the slower PNG-then-encode flow.
+                      {t("recording.streamingEncodingHint")}
                     </p>
                   </div>
                 </div>
@@ -281,14 +277,14 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
               disabled={!canStart}
               className="w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white px-10 py-6 text-lg transition-all shadow-md shadow-red-500/30 hover:shadow-lg hover:shadow-red-500/40 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Start Recording
+              {t("recording.startRecording")}
             </Button>
             <Button
               onClick={() => onOpenChange(false)}
               variant="outline"
               className="w-full sm:w-auto border-gray-500 hover:border-gray-200 px-10 py-6 text-lg text-zinc-500 bg-zinc-900 hover:bg-zinc-800"
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
           </div>
         </div>

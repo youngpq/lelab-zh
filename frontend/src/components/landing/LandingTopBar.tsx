@@ -1,5 +1,6 @@
 import React from "react";
 import HfAuthChip from "./HfAuthChip";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const LandingTopBar: React.FC = () => {
   return (
@@ -15,7 +16,10 @@ const LandingTopBar: React.FC = () => {
             LeLab
           </span>
         </div>
-        <HfAuthChip />
+        <div className="flex items-center gap-3">
+          <LanguageSwitcher />
+          <HfAuthChip />
+        </div>
       </div>
     </header>
   );

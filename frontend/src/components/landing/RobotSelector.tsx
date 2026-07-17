@@ -15,6 +15,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface RobotSelectorProps {
   selectedName: string | null;
@@ -31,6 +32,7 @@ const RobotSelector: React.FC<RobotSelectorProps> = ({
   onCreateNew,
   isLoading,
 }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -42,10 +44,10 @@ const RobotSelector: React.FC<RobotSelectorProps> = ({
 
   const createDisabled = !canCreate;
   const createLabel = matchesExisting
-    ? "Already exists"
+    ? t("robot.alreadyExists")
     : trimmed === ""
-      ? "Create new robot…"
-      : `Create "${trimmed}"`;
+      ? t("robot.createNew")
+      : t("robot.createNamed", { name: trimmed });
 
   const reset = () => {
     setQuery("");
@@ -75,8 +77,8 @@ const RobotSelector: React.FC<RobotSelectorProps> = ({
         >
           <span className={cn("truncate", selectedName ? "" : "text-gray-400")}>
             {isLoading
-              ? "Loading..."
-              : selectedName ?? "Select a robot or type a new name"}
+              ? t("robot.loading")
+              : selectedName ?? t("robot.selectOrCreate")}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -88,7 +90,7 @@ const RobotSelector: React.FC<RobotSelectorProps> = ({
       >
         <Command className="bg-gray-800">
           <CommandInput
-            placeholder="Search or type new name..."
+            placeholder={t("robot.searchOrCreate")}
             value={query}
             onValueChange={setQuery}
             onKeyDown={(e) => {
@@ -102,11 +104,11 @@ const RobotSelector: React.FC<RobotSelectorProps> = ({
           <CommandList>
             {availableNames.length === 0 && (
               <CommandEmpty className="py-4 text-sm text-gray-400 text-center">
-                No robots yet. Type a name to create one.
+                {t("robot.noneYet")}
               </CommandEmpty>
             )}
             {availableNames.length > 0 && (
-              <CommandGroup heading="Existing">
+              <CommandGroup heading={t("robot.existing")}>
                 {availableNames.map((name) => (
                   <CommandItem
                     key={name}

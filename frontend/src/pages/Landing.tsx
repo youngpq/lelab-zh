@@ -17,10 +17,12 @@ import { useDatasets } from "@/hooks/useDatasets";
 import { DatasetItem } from "@/lib/replayApi";
 import { CameraConfig } from "@/components/recording/CameraConfiguration";
 import { isHostedSpace } from "@/lib/isHostedSpace";
+import { useTranslation } from "react-i18next";
 
 const ON_SPACE = isHostedSpace();
 
 const Landing = () => {
+  const { t } = useTranslation();
   const [showUsageModal, setShowUsageModal] = useState(ON_SPACE);
   const { auth } = useHfAuth();
 
@@ -125,8 +127,8 @@ const Landing = () => {
   const handleStartRecording = async () => {
     if (!selectedRecord) {
       toast({
-        title: "No robot selected",
-        description: "Select or create a robot on the Landing page first.",
+        title: t("landing.noRobotSelected"),
+        description: t("landing.selectRobotFirst"),
         variant: "destructive",
       });
       return;
@@ -134,16 +136,16 @@ const Landing = () => {
     const robot = selectedRecord;
     if (!robot.is_clean) {
       toast({
-        title: "Robot not ready",
-        description: `${robot.name} is missing a calibration. Configure it before recording.`,
+        title: t("landing.robotNotReady"),
+        description: t("landing.robotMissingCalibration", { name: robot.name }),
         variant: "destructive",
       });
       return;
     }
     if (!datasetName || !singleTask) {
       toast({
-        title: "Missing dataset details",
-        description: "Please enter a dataset name and task description.",
+        title: t("landing.missingDatasetDetails"),
+        description: t("landing.enterDatasetDetails"),
         variant: "destructive",
       });
       return;
@@ -243,7 +245,7 @@ const Landing = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="bg-gray-800 rounded-lg border border-gray-700 p-3 flex flex-col gap-2">
               <h3 className="font-semibold text-lg text-left h-10 flex items-center">
-                Dataset
+                {t("landing.dataset")}
               </h3>
               <DatasetPicker
                 datasets={datasets}
@@ -259,8 +261,8 @@ const Landing = () => {
                 >
                   <span className="truncate text-gray-300">
                     {datasetsLoading
-                      ? "Loading datasets…"
-                      : "Select or create a dataset…"}
+                      ? t("landing.loadingDatasets")
+                      : t("landing.selectOrCreateDataset")}
                   </span>
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -268,13 +270,13 @@ const Landing = () => {
             </div>
             <div className="bg-gray-800 rounded-lg border border-gray-700 p-3 flex flex-col gap-2">
               <h3 className="font-semibold text-lg text-left h-10 flex items-center">
-                Create a model
+                {t("landing.createModel")}
               </h3>
               <Button
                 onClick={handleTrainingClick}
                 className="w-full bg-green-500 hover:bg-green-600 text-white"
               >
-                Training
+                {t("landing.training")}
               </Button>
             </div>
           </div>

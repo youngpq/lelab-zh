@@ -20,6 +20,7 @@ import {
   getInferenceStatus,
   stopInference,
 } from "@/lib/inferenceApi";
+import { useTranslation } from "react-i18next";
 
 const POLL_MS = 1000;
 
@@ -31,6 +32,7 @@ function formatTime(seconds: number): string {
 }
 
 const Inference: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { baseUrl, fetchWithHeaders } = useApi();
   const { toast } = useToast();
@@ -61,11 +63,11 @@ const Inference: React.FC = () => {
           navigatedAwayRef.current = true;
           if (next.exited) {
             toast({
-              title: "Inference finished",
+              title: t("inference.finishedToast"),
               description:
                 next.exit_code === 0
-                  ? "Run completed."
-                  : `Exit code ${next.exit_code}. See ${next.log_path}.`,
+                  ? t("inference.runCompleted")
+                  : t("inference.exitCode", { code: next.exit_code, path: next.log_path }),
               variant: next.exit_code === 0 ? "default" : "destructive",
             });
           }
@@ -86,10 +88,10 @@ const Inference: React.FC = () => {
         ) {
           stopRequestedRef.current = true;
           toast({
-            title: "Inference seems hung",
-            description: `Rollout past duration by ${Math.round(
-              next.rollout_elapsed_s - next.duration_s,
-            )}s. Stopping.`,
+            title: t("inference.seemsHung"),
+            description: t("inference.pastDuration", {
+              seconds: Math.round(next.rollout_elapsed_s - next.duration_s),
+            }),
             variant: "destructive",
           });
           stopIfHung();
@@ -97,7 +99,7 @@ const Inference: React.FC = () => {
       } catch (e) {
         if (!cancelled) {
           toast({
-            title: "Lost connection to backend",
+            title: t("inference.lostConnection"),
             description: e instanceof Error ? e.message : String(e),
             variant: "destructive",
           });
@@ -110,7 +112,7 @@ const Inference: React.FC = () => {
       cancelled = true;
       clearInterval(id);
     };
-  }, [baseUrl, fetchWithHeaders, navigate, toast]);
+  }, [baseUrl, fetchWithHeaders, navigate, toast, t]);
 
   const handleStop = async () => {
     setShowStopConfirm(false);
@@ -119,7 +121,7 @@ const Inference: React.FC = () => {
       // Status poll will catch the inactive state and navigate home.
     } catch (e) {
       toast({
-        title: "Stop failed",
+        title: t("inference.stopFailed"),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
@@ -129,7 +131,7 @@ const Inference: React.FC = () => {
   if (!status) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin mr-3" /> Connecting to inference…
+        <Loader2 className="w-6 h-6 animate-spin mr-3" /> {t("inference.connecting")}
       </div>
     );
   }
@@ -146,10 +148,10 @@ const Inference: React.FC = () => {
       ? Math.min(100, (rolloutElapsed / duration) * 100)
       : 0;
   const pillLabel = isSettingUp
-    ? "SETTING UP"
+    ? t("inference.settingUp")
     : isRunning
-    ? "RUNNING"
-    : "FINISHED";
+    ? t("inference.running")
+    : t("inference.finished");
   const timerSeconds = isRunning ? rolloutElapsed : setupElapsed;
 
   return (
@@ -164,7 +166,7 @@ const Inference: React.FC = () => {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <Logo />
-        <h1 className="font-bold text-white text-2xl">Inference</h1>
+        <h1 className="font-bold text-white text-2xl">{t("inference.title")}</h1>
       </div>
 
       <div className="flex-1 flex items-center justify-center">
@@ -196,7 +198,7 @@ const Inference: React.FC = () => {
             </div>
             <div className="text-sm text-gray-500 mt-2">
               {isSettingUp
-                ? "Loading policy & connecting hardware…"
+                ? t("inference.loadingPolicy")
                 : `/ ${formatTime(duration)}`}
             </div>
           </div>
@@ -213,7 +215,7 @@ const Inference: React.FC = () => {
           </div>
 
           <div className="text-xs text-slate-500 break-all mb-6">
-            policy: {status.policy_ref ?? "(unknown)"}
+            {t("inference.policy")}: {status.policy_ref ?? t("inference.unknownPolicy")}
           </div>
 
           <Button
@@ -222,7 +224,7 @@ const Inference: React.FC = () => {
             className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-6 text-lg disabled:opacity-50"
           >
             <Square className="w-5 h-5 mr-2" />
-            Stop
+            {t("inference.stop")}
           </Button>
         </div>
       </div>
@@ -230,21 +232,20 @@ const Inference: React.FC = () => {
       <AlertDialog open={showStopConfirm} onOpenChange={setShowStopConfirm}>
         <AlertDialogContent className="bg-gray-900 border-gray-700 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Stop inference?</AlertDialogTitle>
+            <AlertDialogTitle>{t("inference.stopQuestion")}</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">
-              The follower will hold its current pose. You can launch another
-              run from the job tile.
+              {t("inference.stopDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700">
-              Keep running
+              {t("inference.keepRunning")}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleStop}
               className="bg-red-500 hover:bg-red-600 text-white"
             >
-              Stop
+              {t("inference.stop")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

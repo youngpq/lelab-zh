@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import UrdfViewer from "../UrdfViewer";
 import Logo from "@/components/Logo";
+import { useTranslation } from "react-i18next";
 
 interface VisualizerPanelProps {
   onGoBack: () => void;
@@ -17,6 +18,7 @@ const VisualizerPanel: React.FC<VisualizerPanelProps> = ({
   className,
   rightSlot,
 }) => {
+  const { t } = useTranslation();
   return (
     <div
       className={cn(
@@ -36,7 +38,7 @@ const VisualizerPanel: React.FC<VisualizerPanelProps> = ({
           </Button>
           <Logo iconOnly={true} />
           <div className="w-px h-6 bg-gray-700" />
-          <h2 className="text-xl font-medium text-gray-200">Teleoperation</h2>
+          <h2 className="text-xl font-medium text-gray-200">{t("teleoperation.title")}</h2>
         </div>
         <div className="flex-1 bg-black rounded border border-gray-800 min-h-[50vh] lg:min-h-0">
           <UrdfViewer />

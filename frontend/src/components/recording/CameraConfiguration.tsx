@@ -19,6 +19,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAvailableCameras } from "@/hooks/useAvailableCameras";
 import { useCameraStream } from "@/hooks/useCameraStream";
+import { useTranslation } from "react-i18next";
 
 // Sentinels distinguish "leave unset" (auto-detect / platform default) from an
 // explicit choice. Radix Select disallows an empty-string value, so we map these
@@ -62,6 +63,7 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
   releaseStreamsRef,
 }) => {
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const {
     cameras: availableCameras,
@@ -98,8 +100,8 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
   const addCamera = () => {
     if (!selectedCameraIndex || !cameraName.trim()) {
       toast({
-        title: "Missing Information",
-        description: "Please select a camera and provide a name.",
+        title: t("recording.missingCameraInfo"),
+        description: t("recording.selectCameraAndName"),
         variant: "destructive",
       });
       return;
@@ -112,8 +114,8 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
 
     if (!selectedCamera) {
       toast({
-        title: "Invalid Camera",
-        description: "Selected camera is not available.",
+        title: t("recording.invalidCamera"),
+        description: t("recording.cameraUnavailable"),
         variant: "destructive",
       });
       return;
@@ -129,8 +131,8 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
     );
     if (isDuplicate) {
       toast({
-        title: "Camera Already Added",
-        description: "This camera is already in the configuration.",
+        title: t("recording.cameraAlreadyAdded"),
+        description: t("recording.cameraAlreadyAddedDescription"),
         variant: "destructive",
       });
       return;
@@ -153,16 +155,16 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
     setCameraName("");
 
     toast({
-      title: "Camera Added",
-      description: `${newCamera.name} has been added to the configuration.`,
+      title: t("recording.cameraAdded"),
+      description: t("recording.cameraAddedDescription", { name: newCamera.name }),
     });
   };
 
   const removeCamera = (cameraId: string) => {
     onCamerasChange(cameras.filter((cam) => cam.id !== cameraId));
     toast({
-      title: "Camera Removed",
-      description: "Camera has been removed from the configuration.",
+      title: t("recording.cameraRemoved"),
+      description: t("recording.cameraRemovedDescription"),
     });
   };
 
@@ -192,18 +194,18 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-white border-b border-gray-700 pb-2">
-        Camera Configuration
+        {t("recording.cameraConfiguration")}
       </h3>
 
       {/* Add Camera Section */}
       <div className="bg-gray-800/50 rounded-lg p-4 space-y-4">
-        <h4 className="text-md font-medium text-gray-300">Add Camera</h4>
+        <h4 className="text-md font-medium text-gray-300">{t("recording.addCamera")}</h4>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium text-gray-300">
-                Available Cameras
+                {t("recording.availableCameras")}
               </Label>
               <Button
                 type="button"
@@ -212,8 +214,8 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
                 onClick={() => refreshCameras()}
                 disabled={isLoadingCameras}
                 className="h-6 w-6 text-gray-400 hover:text-white"
-                title="Rescan for cameras (e.g. after plugging in a new USB camera)"
-                aria-label="Rescan for cameras"
+                title={t("recording.rescanCameras")}
+                aria-label={t("recording.rescanCameras")}
               >
                 <RefreshCw
                   className={`w-3.5 h-3.5 ${isLoadingCameras ? "animate-spin" : ""}`}
@@ -228,7 +230,7 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
               <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                 <SelectValue
                   placeholder={
-                    isLoadingCameras ? "Loading cameras..." : "Select camera"
+                    isLoadingCameras ? t("recording.loadingCameras") : t("recording.selectCamera")
                   }
                 />
               </SelectTrigger>
@@ -250,7 +252,7 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
                         <span className="font-medium">{camera.name}</span>
                         <span className="text-xs text-gray-400">
                           Index {camera.index}
-                          {alreadyAdded && " · already added"}
+                          {alreadyAdded && ` · ${t("recording.alreadyAdded")}`}
                         </span>
                       </div>
                     </SelectItem>
@@ -262,7 +264,7 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
 
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-300">
-              Camera Name
+              {t("recording.cameraName")}
             </Label>
             <Input
               value={cameraName}
@@ -279,7 +281,7 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
               disabled={!selectedCameraIndex || !cameraName.trim()}
             >
               <Plus className="w-4 h-4 mr-2" />
-              Add Camera
+              {t("recording.addCamera")}
             </Button>
           </div>
         </div>
@@ -289,7 +291,7 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
       {cameras.length > 0 && (
         <div className="space-y-4">
           <h4 className="text-md font-medium text-gray-300">
-            Configured Cameras ({cameras.length})
+            {t("recording.configuredCameras", { count: cameras.length })}
           </h4>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
@@ -309,7 +311,7 @@ const CameraConfiguration: React.FC<CameraConfigurationProps> = ({
       {cameras.length === 0 && (
         <div className="text-center py-8 text-gray-500">
           <Camera className="w-12 h-12 mx-auto mb-4 text-gray-600" />
-          <p>No cameras configured. Add a camera to get started.</p>
+          <p>{t("recording.noCameras")}</p>
         </div>
       )}
     </div>
@@ -329,6 +331,7 @@ const CameraPreview: React.FC<CameraPreviewProps> = ({
   onRemove,
   onUpdate,
 }) => {
+  const { t } = useTranslation();
   const { videoRef, hasError: streamError } = useCameraStream(
     camera.device_id,
     paused
@@ -350,10 +353,10 @@ const CameraPreview: React.FC<CameraPreviewProps> = ({
             <VideoOff className="w-8 h-8 text-gray-500 mb-2" />
             <span className="text-gray-500 text-sm">
               {paused
-                ? "Preview paused"
+                ? t("recording.previewPaused")
                 : camera.device_id
-                ? "Preview failed"
-                : "No browser match"}
+                ? t("recording.previewFailed")
+                : t("recording.noBrowserMatch")}
             </span>
           </div>
         )}
@@ -376,12 +379,12 @@ const CameraPreview: React.FC<CameraPreviewProps> = ({
         <Collapsible>
           <CollapsibleTrigger className="group flex items-center gap-1.5 text-xs font-medium text-gray-300 hover:text-white transition-colors">
             <ChevronRight className="w-3.5 h-3.5 transition-transform group-data-[state=open]:rotate-90" />
-            Configuration
+            {t("recording.configuration")}
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-2 space-y-2">
             <div className="grid grid-cols-1 gap-2 text-xs text-gray-400">
               <div className="flex items-center gap-2">
-                <span className="w-16">Resolution:</span>
+                <span className="w-16">{t("recording.resolution")}</span>
                 <div className="flex items-center gap-1">
                   <NumberInput
                     value={camera.width}
@@ -447,7 +450,7 @@ const CameraPreview: React.FC<CameraPreviewProps> = ({
                 </Select>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-16">Backend:</span>
+                <span className="w-16">{t("recording.backend")}</span>
                 <Select
                   value={camera.backend ?? BACKEND_DEFAULT}
                   onValueChange={(v) =>
@@ -477,11 +480,11 @@ const CameraPreview: React.FC<CameraPreviewProps> = ({
                 </Select>
               </div>
               <p className="text-[10px] text-gray-500 leading-tight">
-                Overriding the backend can reorder camera indices on macOS.
+                {t("recording.backendHint")}
               </p>
             </div>
             <div className="text-xs text-gray-500">
-              Type: {camera.type} | Device:{" "}
+              {t("recording.type")}: {camera.type} | {t("recording.device")}:{" "}
               {camera.device_id?.substring(0, 10)}...
             </div>
           </CollapsibleContent>

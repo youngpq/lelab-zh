@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { UrdfProvider } from "@/contexts/UrdfContext";
@@ -20,8 +20,20 @@ import UpdateNotice from "@/components/UpdateNotice";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
 import { ApiProvider } from "./contexts/ApiContext";
 import { HfAuthProvider } from "./contexts/HfAuthContext";
+import LanguageSwitcher from "./components/LanguageSwitcher";
 
 const queryClient = new QueryClient();
+
+const RouteLanguageSwitcher = () => {
+  const location = useLocation();
+  if (location.pathname === "/") return null;
+
+  return (
+    <div className="fixed right-4 top-3 z-40 rounded-md border border-slate-700 bg-slate-900/90 px-2 py-1.5 shadow-lg backdrop-blur">
+      <LanguageSwitcher />
+    </div>
+  );
+};
 
 function App() {
   return (
@@ -36,6 +48,7 @@ function App() {
                     <SingleTabGuard>
                       <TeleopStopNotice />
                       <UpdateNotice />
+                      <RouteLanguageSwitcher />
                       <Routes>
                         <Route path="/" element={<Landing />} />
                         <Route path="/teleoperation" element={<Teleoperation />} />

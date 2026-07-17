@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useApi } from "@/contexts/ApiContext";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateCheck } from "@/hooks/useUpdateCheck";
+import { useTranslation } from "react-i18next";
 
 /**
  * App-level popup that notifies the user when a newer LeLab is available on
@@ -27,6 +28,7 @@ const UpdateNotice = () => {
   const { status, open, dismiss } = useUpdateCheck();
   const { baseUrl, fetchWithHeaders } = useApi();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [dontAsk, setDontAsk] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [output, setOutput] = useState<string | null>(null);
@@ -35,21 +37,21 @@ const UpdateNotice = () => {
 
   const behind =
     typeof status.commits_behind === "number" && status.commits_behind > 0
-      ? `${status.commits_behind} commit${status.commits_behind === 1 ? "" : "s"} behind`
-      : "A new version is available";
+      ? t("update.behind", { count: status.commits_behind })
+      : t("update.availableDescription");
 
   const copyCommand = async () => {
     if (!status.update_command) return;
     try {
       await navigator.clipboard.writeText(status.update_command);
       toast({
-        title: "Copied",
-        description: "Update command copied to clipboard.",
+        title: t("common.copied"),
+        description: t("update.copiedCommand"),
       });
     } catch {
       toast({
-        title: "Copy failed",
-        description: "Select and copy the command manually.",
+        title: t("update.copyFailed"),
+        description: t("update.copyManually"),
         variant: "destructive",
       });
     }
@@ -65,19 +67,19 @@ const UpdateNotice = () => {
       const body: { success: boolean; message: string; output: string } =
         await r.json();
       if (body.success) {
-        toast({ title: "Updated", description: body.message });
+        toast({ title: t("update.updated"), description: body.message });
         dismiss(false);
       } else {
         setOutput(body.output || body.message);
         toast({
-          title: "Update failed",
+          title: t("update.updateFailed"),
           description: body.message,
           variant: "destructive",
         });
       }
     } catch (e) {
       toast({
-        title: "Update failed",
+        title: t("update.updateFailed"),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
@@ -100,12 +102,12 @@ const UpdateNotice = () => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-white">
             <Sparkles className="w-5 h-5 text-amber-400" />
-            LeLab update available
+            {t("update.dialogTitle")}
           </DialogTitle>
           <DialogDescription className="text-slate-300">
-            You're {behind} 😱.
+            {behind}
             <br />
-            Update to get the latest fixes and features 🤗.
+            {t("update.getLatest")}
             {status.compare_url && (
               <>
                 {" "}
@@ -115,7 +117,7 @@ const UpdateNotice = () => {
                   rel="noreferrer"
                   className="text-sky-300 underline hover:text-sky-200"
                 >
-                  See what changed
+                  {t("update.seeChanges")}
                 </a>
                 .
               </>
@@ -127,7 +129,7 @@ const UpdateNotice = () => {
           <Collapsible>
             <CollapsibleTrigger className="group flex items-center gap-1.5 text-xs font-medium text-slate-300 hover:text-white transition-colors">
               <ChevronRight className="w-3.5 h-3.5 transition-transform group-data-[state=open]:rotate-90" />
-              Or update manually
+              {t("update.manual")}
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-2">
               <div className="flex items-start gap-2">

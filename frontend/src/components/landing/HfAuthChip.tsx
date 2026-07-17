@@ -1,9 +1,11 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Loader2 } from "lucide-react";
 import { useHfAuth } from "@/contexts/HfAuthContext";
 import HfAuthDialog from "./HfAuthDialog";
 
 const HfAuthChip: React.FC = () => {
+  const { t } = useTranslation();
   const { auth } = useHfAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -11,7 +13,7 @@ const HfAuthChip: React.FC = () => {
     return (
       <div className="inline-flex items-center gap-2 rounded-full border border-gray-800 bg-gray-900/60 px-3 py-1 text-xs text-gray-400">
         <Loader2 className="w-3 h-3 animate-spin" />
-        <span>Checking HF…</span>
+        <span>{t("auth.checking")}</span>
       </div>
     );
   }
@@ -44,7 +46,7 @@ const HfAuthChip: React.FC = () => {
           className="h-2 w-2 rounded-full bg-amber-400"
           aria-hidden="true"
         />
-        <span>HF not configured</span>
+        <span>{t("auth.notConfigured")}</span>
       </button>
       <HfAuthDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </>

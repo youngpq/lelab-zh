@@ -33,18 +33,20 @@ import { startInference } from "@/lib/inferenceApi";
 import CheckpointDropdown from "@/components/jobs/CheckpointDropdown";
 import { useAvailableCameras } from "@/hooks/useAvailableCameras";
 import { useCameraStream } from "@/hooks/useCameraStream";
+import { useTranslation } from "react-i18next";
 
 const CameraThumbnail: React.FC<{ deviceId: string; paused: boolean }> = ({
   deviceId,
   paused,
 }) => {
+  const { t } = useTranslation();
   const { videoRef, hasError } = useCameraStream(deviceId, paused);
   if (paused || hasError || !deviceId) {
     return (
       <div className="w-32 h-24 bg-gray-800 rounded border border-gray-700 flex flex-col items-center justify-center">
         <VideoOff className="w-5 h-5 text-gray-500 mb-1" />
         <span className="text-[10px] text-gray-500">
-          {paused ? "Released" : "No preview"}
+          {paused ? t("inference.released") : t("inference.noPreview")}
         </span>
       </div>
     );
@@ -77,6 +79,7 @@ const InferenceModal: React.FC<Props> = ({
   jobId,
   initialStep,
 }) => {
+  const { t } = useTranslation();
   const { baseUrl, fetchWithHeaders } = useApi();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -238,7 +241,7 @@ const InferenceModal: React.FC<Props> = ({
       navigate("/inference");
     } catch (e) {
       toast({
-        title: "Couldn't start inference",
+        title: t("inference.startFailed"),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive",
       });
@@ -262,40 +265,38 @@ const InferenceModal: React.FC<Props> = ({
             </div>
           </div>
           <DialogTitle className="text-white text-center text-2xl font-bold">
-            Configure Inference
+            {t("inference.configure")}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
           <DialogDescription className="text-gray-400 text-base leading-relaxed text-center">
-            Pick a checkpoint and confirm hardware. The selected policy will
-            drive the follower autonomously for the configured duration.
+            {t("inference.configureDescription")}
           </DialogDescription>
 
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white border-b border-gray-700 pb-2">
-              Robot Configuration
+              {t("inference.robotConfiguration")}
             </h3>
             {!robot ? (
               <Alert className="bg-amber-900/40 border-amber-700 text-amber-100">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Select and configure a robot on the Landing page first.
+                  {t("inference.selectRobotFirst")}
                 </AlertDescription>
               </Alert>
             ) : !robot.is_clean ? (
               <Alert className="bg-amber-900/40 border-amber-700 text-amber-100">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>{robot.name}</strong> is missing a calibration.
-                  Configure it before running inference.
+                  {t("inference.robotMissingCalibration", { name: robot.name })}
                 </AlertDescription>
               </Alert>
             ) : (
               <div className="flex items-center gap-2 text-sm">
                 <CheckCircle className="w-4 h-4 text-green-400" />
                 <span className="text-slate-200">
-                  Running on <strong>{robot.name}</strong>
+                  {t("inference.runningOn", { name: robot.name })}
                 </span>
               </div>
             )}
@@ -303,13 +304,13 @@ const InferenceModal: React.FC<Props> = ({
 
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white border-b border-gray-700 pb-2">
-              Checkpoint
+              {t("inference.checkpoint")}
             </h3>
             {checkpoints.length === 0 ? (
               <Alert className="bg-amber-900/40 border-amber-700 text-amber-100">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  No checkpoints available for this job yet.
+                  {t("inference.noCheckpoints")}
                 </AlertDescription>
               </Alert>
             ) : (
@@ -323,12 +324,12 @@ const InferenceModal: React.FC<Props> = ({
 
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white border-b border-gray-700 pb-2">
-              Run parameters
+              {t("inference.runParameters")}
             </h3>
             {policyConfig?.requires_task ? (
               <div className="space-y-2">
                 <Label htmlFor="task" className="text-sm font-medium text-gray-300">
-                  Task description
+                  {t("inference.taskDescription")}
                 </Label>
                 <Input
                   id="task"
@@ -338,13 +339,13 @@ const InferenceModal: React.FC<Props> = ({
                   className="bg-gray-800 border-gray-700 text-white"
                 />
                 <p className="text-xs text-gray-500">
-                  This policy is language-conditioned ({policyConfig.policy_type}).
+                  {t("inference.languageConditioned", { policy: policyConfig.policy_type })}
                 </p>
               </div>
             ) : null}
             <div className="space-y-2">
               <Label htmlFor="durationS" className="text-sm font-medium text-gray-300">
-                Max duration (seconds)
+                {t("inference.maxDuration")}
               </Label>
               <NumberInput
                 id="durationS"
@@ -365,24 +366,23 @@ const InferenceModal: React.FC<Props> = ({
             {policyConfigLoading ? (
               <div className="flex items-center gap-2 text-sm text-slate-400">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Reading policy config…
+                {t("inference.readingPolicyConfig")}
               </div>
             ) : policyConfigError ? (
               <Alert className="bg-red-900/40 border-red-700 text-red-100">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Couldn't load policy config: {policyConfigError}
+                  {t("inference.loadPolicyFailed", { error: policyConfigError })}
                 </AlertDescription>
               </Alert>
             ) : !policyConfig ? null : expectedCameraNames.length === 0 ? (
               <p className="text-xs text-gray-500">
-                This policy doesn't use cameras.
+                {t("inference.noCameras")}
               </p>
             ) : (
               <div className="space-y-3">
                 <p className="text-xs text-gray-500">
-                  Bind a physical camera to each name the policy was trained
-                  with. Resolution comes from the checkpoint.
+                  {t("inference.cameraBindingHint")}
                 </p>
                 {expectedCameraNames.map((name) => {
                   const dims = policyConfig.image_features[name];
@@ -406,12 +406,12 @@ const InferenceModal: React.FC<Props> = ({
                         onValueChange={(v) => onCameraBindingChange(name, v)}
                       >
                         <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-56">
-                          <SelectValue placeholder="Select a camera" />
+                          <SelectValue placeholder={t("inference.selectCamera")} />
                         </SelectTrigger>
                         <SelectContent className="bg-gray-900 border-gray-700 text-white">
                           {availableCameras.length === 0 ? (
                             <div className="px-2 py-1.5 text-xs text-gray-500">
-                              No cameras detected
+                              {t("inference.noCameraDetected")}
                             </div>
                           ) : (
                             availableCameras.map((cam) => (
@@ -440,14 +440,14 @@ const InferenceModal: React.FC<Props> = ({
               className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white px-10 py-6 text-lg disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Play className="w-5 h-5 mr-2" />
-              {submitting ? "Starting…" : "Start Inference"}
+              {submitting ? t("inference.starting") : t("inference.start")}
             </Button>
             <Button
               onClick={() => onOpenChange(false)}
               variant="outline"
               className="w-full sm:w-auto border-gray-500 hover:border-gray-200 px-10 py-6 text-lg text-zinc-500 bg-zinc-900 hover:bg-zinc-800"
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
           </div>
         </div>

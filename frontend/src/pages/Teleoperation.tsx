@@ -4,8 +4,10 @@ import VisualizerPanel from "@/components/control/VisualizerPanel";
 import TeleopCameraPanel from "@/components/control/TeleopCameraPanel";
 import { useToast } from "@/hooks/use-toast";
 import { useApi } from "@/contexts/ApiContext";
+import { useTranslation } from "react-i18next";
 
 const TeleoperationPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { baseUrl, fetchWithHeaders } = useApi();
@@ -24,14 +26,14 @@ const TeleoperationPage = () => {
       const data = await res.json();
       if (data?.success) {
         toast({
-          title: "Teleoperation stopped",
-          description: "The arm was disconnected cleanly.",
+          title: t("teleoperation.stopped"),
+          description: t("teleoperation.disconnected"),
         });
       }
     } catch {
       /* best-effort */
     }
-  }, [baseUrl, fetchWithHeaders, toast]);
+  }, [baseUrl, fetchWithHeaders, t, toast]);
 
   // Cover every exit path so a session can't keep running and block the next
   // start with "already active":

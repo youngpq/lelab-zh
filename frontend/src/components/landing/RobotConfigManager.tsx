@@ -4,6 +4,7 @@ import { useApi } from "@/contexts/ApiContext";
 import { useToast } from "@/hooks/use-toast";
 import { RobotRecord } from "@/hooks/useRobots";
 import RobotTile from "./RobotTile";
+import { useTranslation } from "react-i18next";
 
 interface RobotConfigManagerProps {
   selectedName: string | null;
@@ -24,6 +25,7 @@ const RobotConfigManager: React.FC<RobotConfigManagerProps> = ({
   createRobot,
   deleteRobot,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { baseUrl, fetchWithHeaders } = useApi();
   const { toast } = useToast();
@@ -50,21 +52,21 @@ const RobotConfigManager: React.FC<RobotConfigManagerProps> = ({
       // — not just `res.ok` — or we'd navigate to an empty teleop screen.
       if (res.ok && data.success) {
         toast({
-          title: "Teleoperation Started",
+          title: t("robot.teleoperationStarted"),
           description: data.message || `Started teleoperation for ${robot.name}.`,
         });
         navigate("/teleoperation");
       } else {
         toast({
-          title: "Error Starting Teleoperation",
+          title: t("robot.teleoperationStartError"),
           description: data.message || "Failed to start.",
           variant: "destructive",
         });
       }
     } catch (e) {
       toast({
-        title: "Connection Error",
-        description: "Could not connect to the backend server.",
+        title: t("robot.connectionError"),
+        description: t("robot.couldNotConnect"),
         variant: "destructive",
       });
     }
