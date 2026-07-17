@@ -109,12 +109,17 @@ LELAB_WHEEL=$(find dist -maxdepth 1 -name "lelab_zh-${APP_VERSION}-*.whl" -print
 cp "$LELAB_WHEEL" "$WHEELS_DIR/"
 echo "[构建] lelab-zh wheel: $(basename "$LELAB_WHEEL")"
 
-# 检查 wheel METADATA 不残留 git URL
-if ! unzip -Z1 "$LELAB_WHEEL" | grep -q '/METADATA$'; then
+# 检查 wheel METADATA 不残留 git URL。
+# 不使用 grep -q：本脚本启用了 pipefail，grep 提前退出会让 unzip 收到 SIGPIPE，造成误报。
+METADATA_LIST="$BUILD_DIR/lelab-wheel-metadata.list"
+unzip -Z1 "$LELAB_WHEEL" > "$METADATA_LIST"
+if ! grep -E '/METADATA$' "$METADATA_LIST" >/dev/null; then
     echo "[错误] lelab-zh wheel 缺少 METADATA！"
     exit 1
 fi
-if unzip -p "$LELAB_WHEEL" '*METADATA' 2>/dev/null | grep '^Requires-Dist:' | grep -qE "git\+|github\.com/huggingface/lerobot"; then
+METADATA_FILE=$(grep -E '/METADATA$' "$METADATA_LIST" | head -n 1)
+unzip -p "$LELAB_WHEEL" "$METADATA_FILE" > "$BUILD_DIR/lelab-wheel-METADATA"
+if grep '^Requires-Dist:' "$BUILD_DIR/lelab-wheel-METADATA" | grep -E "git\+|github\.com/huggingface/lerobot" >/dev/null; then
     echo "[错误] wheel METADATA 中残留 git URL！"
     exit 1
 fi
