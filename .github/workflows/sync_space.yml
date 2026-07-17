@@ -10,6 +10,9 @@ on:
 
 jobs:
   sync-to-hub:
+    # The token and Space belong to the upstream Hugging Face repository.
+    # Forks should not report a failing sync job on every frontend change.
+    if: github.repository == 'huggingface/leLab'
     runs-on: ubuntu-latest
     permissions:
       contents: read
