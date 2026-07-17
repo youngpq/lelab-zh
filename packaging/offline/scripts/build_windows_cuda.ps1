@@ -230,6 +230,7 @@ Copy-Item (Join-Path $SCRIPTS_SRC "start_windows.bat") (Join-Path $DIST_DIR "启
 Copy-Item (Join-Path $SCRIPTS_SRC "stop_windows.bat") (Join-Path $DIST_DIR "停止LeLab.bat")
 Copy-Item (Join-Path $SCRIPTS_SRC "repair_windows.bat") (Join-Path $DIST_DIR "修复安装.bat")
 Copy-Item (Join-Path $SCRIPTS_SRC "uninstall_windows.bat") (Join-Path $DIST_DIR "卸载LeLab.bat")
+Copy-Item (Join-Path $SCRIPTS_SRC "lelab_windows.ps1") (Join-Path $DIST_DIR "lelab_windows.ps1")
 
 # ============================================================
 # 10. 生成 requirements-offline.txt（合并锁 + 本地 wheel hash）
