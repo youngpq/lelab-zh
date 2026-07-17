@@ -10,7 +10,7 @@
 
 ```bash
 uv tool install --python 3.12 \
-  git+https://github.com/<你的 GitHub 用户名>/lelab-zh.git@v0.1.0-zh.1
+  git+https://github.com/youngpq/lelab-zh.git@v0.1.0-zh.1
 
 lelab-zh
 ```
@@ -33,7 +33,7 @@ uv tool update-shell
 前端开发或重新构建静态资源时需要 Node.js 22 和 Git LFS：
 
 ```bash
-git clone https://github.com/<你的 GitHub 用户名>/lelab-zh.git
+git clone https://github.com/youngpq/lelab-zh.git
 cd lelab-zh
 git lfs install
 git lfs pull
