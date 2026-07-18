@@ -37,6 +37,28 @@ function Assert-NativeSuccess([string]$FailureMessage) {
     if ($LASTEXITCODE -ne 0) { throw $FailureMessage }
 }
 
+function Set-UvInstallEnvironment([string]$InstallDir) {
+    $tempDir = Join-Path $InstallDir ".uv-temp"
+    $cacheDir = Join-Path $InstallDir ".uv-cache"
+    New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
+    New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
+
+    # Keep uv's temporary executables and cache on the selected install drive.
+    # This avoids C: drive permission/space problems and cross-volume links.
+    $env:TEMP = $tempDir
+    $env:TMP = $tempDir
+    $env:UV_CACHE_DIR = $cacheDir
+    $env:UV_LINK_MODE = "copy"
+}
+
+function Clear-UvInstallEnvironment([string]$InstallDir) {
+    foreach ($path in @((Join-Path $InstallDir ".uv-temp"), (Join-Path $InstallDir ".uv-cache"))) {
+        if (Test-Path -LiteralPath $path) {
+            Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 function Select-InstallDirectory {
     $suggested = Get-InstallDirectory
     Write-Host "[信息] 默认安装位置：$suggested"
@@ -134,13 +156,15 @@ function Install-LeLab {
     $uv = Join-Path $installDir "uv\uv.exe"
     $python = Join-Path $installDir "runtime\python.exe"
     $venv = Join-Path $installDir "venv"
+    Set-UvInstallEnvironment $installDir
     Write-Host "[安装] 正在创建虚拟环境..."
     & $uv venv $venv --python $python
     Assert-NativeSuccess "创建虚拟环境失败。"
 
     Write-Host "[安装] 正在从本地安装依赖（此过程可能需要几分钟）..."
-    & $uv pip install --python (Join-Path $venv "Scripts\python.exe") --offline --no-index --find-links (Join-Path $installDir "wheels") --require-hashes -r (Join-Path $installDir "requirements-offline.txt")
+    & $uv pip install --link-mode=copy --python (Join-Path $venv "Scripts\python.exe") --offline --no-index --find-links (Join-Path $installDir "wheels") --require-hashes -r (Join-Path $installDir "requirements-offline.txt")
     Assert-NativeSuccess "依赖安装失败。请检查安装包是否完整。"
+    Clear-UvInstallEnvironment $installDir
 
     $desktop = [Environment]::GetFolderPath("Desktop")
     $shortcut = Join-Path $desktop "Start LeLab.lnk"
@@ -192,10 +216,12 @@ function Repair-LeLab {
 
     try {
         $uv = Join-Path $installDir "uv\uv.exe"
+        Set-UvInstallEnvironment $installDir
         & $uv venv $venv --python (Join-Path $installDir "runtime\python.exe")
         Assert-NativeSuccess "创建虚拟环境失败。"
-        & $uv pip install --python (Join-Path $venv "Scripts\python.exe") --offline --no-index --find-links (Join-Path $installDir "wheels") --require-hashes -r (Join-Path $installDir "requirements-offline.txt")
+        & $uv pip install --link-mode=copy --python (Join-Path $venv "Scripts\python.exe") --offline --no-index --find-links (Join-Path $installDir "wheels") --require-hashes -r (Join-Path $installDir "requirements-offline.txt")
         Assert-NativeSuccess "依赖安装失败。"
+        Clear-UvInstallEnvironment $installDir
         if (Test-Path -LiteralPath $backup) { Remove-Item -LiteralPath $backup -Recurse -Force }
         Write-Host "[完成] 修复安装完成。"
     } catch {
