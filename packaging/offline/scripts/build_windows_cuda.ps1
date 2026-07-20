@@ -46,7 +46,7 @@ Write-Host "[构建] Checkout LeLab-zh 源码..." -ForegroundColor Yellow
 $LAB_SRC = Join-Path $BUILD_DIR "lelab-zh"
 # Force a non-local clone so staging edits cannot modify the source checkout through hardlinks.
 $PROJECT_URI = "file:///" + ((Resolve-Path $PROJECT_ROOT).Path -replace '\\', '/')
-$clone = Start-Process -FilePath "git" -ArgumentList @("clone", "--depth", "1", "--branch", "main", $PROJECT_URI, $LAB_SRC) -NoNewWindow -Wait -PassThru
+$clone = Start-Process -FilePath "git" -ArgumentList @("clone", "--no-local", "--depth", "1", "--branch", "main", $PROJECT_URI, $LAB_SRC) -NoNewWindow -Wait -PassThru
 if ($clone.ExitCode -ne 0) {
     throw "无法创建 LeLab-zh 构建副本"
 }
@@ -117,6 +117,9 @@ $PYPROJECT = $PYPROJECT_LINES -join "`n"
 # uv build 只读 pyproject.toml，必须临时替换
 Copy-Item pyproject.toml pyproject.toml.bak
 [System.IO.File]::WriteAllText("pyproject.toml", $PYPROJECT, (New-Object System.Text.UTF8Encoding($false)))
+if (-not (Select-String -Path pyproject.toml -SimpleMatch "lerobot[core_scripts,feetech,training]==$LEROBOT_VERSION" -Quiet)) {
+    throw "staging pyproject.toml 未写入锁定的 lerobot 版本"
+}
 
 # 用替换后的 pyproject.toml 构建
 $env:SETUPTOOLS_SCM_PRETEND_VERSION = $APP_VERSION
@@ -127,7 +130,7 @@ try {
     Remove-Item lelab_zh.egg-info -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item build -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item dist -Recurse -Force -ErrorAction SilentlyContinue
-    uv build --wheel
+    uv build --wheel --no-cache
     $LELAB_WHEEL = Get-ChildItem "dist\lelab_zh-$APP_VERSION-*.whl" | Select-Object -First 1
 } finally {
     Copy-Item pyproject.toml.bak pyproject.toml -Force
