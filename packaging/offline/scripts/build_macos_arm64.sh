@@ -57,6 +57,25 @@ if [ "${LELAB_SKIP_LFS:-0}" != "1" ]; then
 fi
 cd "$PROJECT_ROOT"
 
+# Keep the calibration tutorial video inside the built frontend so the
+# offline package does not depend on the remote Hugging Face URL.
+VIDEO_SOURCE="$LAB_SRC/frontend/public/videos/calibrate_so101_2.mp4"
+VIDEO_DEST="$LAB_SRC/frontend/dist/videos/calibrate_so101_2.mp4"
+[ -f "$VIDEO_SOURCE" ] || { echo "[错误] 校准视频缺失: $VIDEO_SOURCE"; exit 1; }
+mkdir -p "$(dirname "$VIDEO_DEST")"
+cp "$VIDEO_SOURCE" "$VIDEO_DEST"
+REMOTE_VIDEO_URL="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/calibrate_so101_2.mp4"
+FRONTEND_JS="$LAB_SRC/frontend/dist/assets"
+grep -R -F "/videos/calibrate_so101_2.mp4" "$FRONTEND_JS" >/dev/null || {
+    echo "[错误] frontend/dist 未引用本地校准视频路径"
+    exit 1
+}
+if grep -R -F "$REMOTE_VIDEO_URL" "$FRONTEND_JS" >/dev/null; then
+    echo "[错误] frontend/dist 仍引用远程校准视频 URL"
+    exit 1
+fi
+echo "[构建] 已将校准视频加入 frontend/dist"
+
 # ============================================================
 # 3. Clone 并构建 LeRobot wheel
 # ============================================================

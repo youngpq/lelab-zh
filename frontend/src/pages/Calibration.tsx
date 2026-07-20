@@ -880,14 +880,14 @@ const Calibration = () => {
                     muted
                   >
                     <source
-                      src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/calibrate_so101_2.mp4"
+                      src="/videos/calibrate_so101_2.mp4"
                       type="video/mp4"
                     />
                     <p className="text-slate-400 text-sm text-center py-4">
                       Your browser does not support the video tag.
                       <br />
                       <a
-                        href="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/calibrate_so101_2.mp4"
+                        href="/videos/calibrate_so101_2.mp4"
                         className="text-blue-400 hover:text-blue-300 underline"
                         target="_blank"
                         rel="noopener noreferrer"

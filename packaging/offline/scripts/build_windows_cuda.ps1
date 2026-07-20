@@ -56,6 +56,19 @@ if ($env:LELAB_SKIP_LFS -ne "1") {
 }
 Pop-Location
 
+# Keep the calibration tutorial video inside the built frontend so the
+# offline package does not depend on the remote Hugging Face URL.
+$VIDEO_SOURCE = Join-Path $LAB_SRC "frontend\public\videos\calibrate_so101_2.mp4"
+$VIDEO_DEST = Join-Path $LAB_SRC "frontend\dist\videos\calibrate_so101_2.mp4"
+if (-not (Test-Path -LiteralPath $VIDEO_SOURCE)) { throw "校准视频缺失：$VIDEO_SOURCE" }
+New-Item -ItemType Directory -Force -Path (Split-Path -Parent $VIDEO_DEST) | Out-Null
+Copy-Item -LiteralPath $VIDEO_SOURCE -Destination $VIDEO_DEST -Force
+$REMOTE_VIDEO_URL = "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/calibrate_so101_2.mp4"
+$FRONTEND_JS = Get-ChildItem -LiteralPath (Join-Path $LAB_SRC "frontend\dist\assets") -Filter "*.js" -File -ErrorAction SilentlyContinue
+if (-not $FRONTEND_JS -or -not (Select-String -LiteralPath $FRONTEND_JS.FullName -SimpleMatch "/videos/calibrate_so101_2.mp4" -Quiet)) { throw "frontend/dist 未引用本地校准视频路径" }
+if (Select-String -LiteralPath $FRONTEND_JS.FullName -SimpleMatch $REMOTE_VIDEO_URL -Quiet) { throw "frontend/dist 仍引用远程校准视频 URL" }
+Write-Host "[构建] 已将校准视频加入 frontend/dist" -ForegroundColor Green
+
 # ============================================================
 # 3. Clone 并构建 LeRobot wheel
 # ============================================================
