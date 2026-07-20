@@ -44,7 +44,9 @@ New-Item -ItemType Directory -Force -Path $BUILD_DIR | Out-Null
 # ============================================================
 Write-Host "[构建] Checkout LeLab-zh 源码..." -ForegroundColor Yellow
 $LAB_SRC = Join-Path $BUILD_DIR "lelab-zh"
-$clone = Start-Process -FilePath "git" -ArgumentList @("clone", "--depth", "1", "--branch", "main", $PROJECT_ROOT, $LAB_SRC) -NoNewWindow -Wait -PassThru
+# Force a non-local clone so staging edits cannot modify the source checkout through hardlinks.
+$PROJECT_URI = "file:///" + ((Resolve-Path $PROJECT_ROOT).Path -replace '\\', '/')
+$clone = Start-Process -FilePath "git" -ArgumentList @("clone", "--depth", "1", "--branch", "main", $PROJECT_URI, $LAB_SRC) -NoNewWindow -Wait -PassThru
 if ($clone.ExitCode -ne 0) {
     throw "无法创建 LeLab-zh 构建副本"
 }

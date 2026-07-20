@@ -49,7 +49,8 @@ mkdir -p "$WHEELS_DIR" "$BUILD_DIR"
 # ============================================================
 echo "[构建] Checkout LeLab-zh 源码..."
 LAB_SRC="$BUILD_DIR/lelab-zh"
-git clone --depth 1 --branch main "$PROJECT_ROOT" "$LAB_SRC"
+# Force a non-local clone so staging edits cannot modify the source checkout through hardlinks.
+git clone --no-local --depth 1 --branch main "$PROJECT_ROOT" "$LAB_SRC"
 cd "$LAB_SRC"
 git lfs install 2>/dev/null || true
 if [ "${LELAB_SKIP_LFS:-0}" != "1" ]; then
