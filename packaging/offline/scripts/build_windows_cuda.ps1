@@ -98,9 +98,14 @@ if ($LEROBOT_WHEEL_OVERRIDE -and (Test-Path $LEROBOT_WHEEL_OVERRIDE)) {
 # ============================================================
 Write-Host "[构建] 构建 lelab-zh wheel..." -ForegroundColor Yellow
 Push-Location $LAB_SRC
+if ((Resolve-Path (Get-Location).Path).Path -ne (Resolve-Path $LAB_SRC).Path) {
+    throw "无法进入 LeLab-zh 构建目录：$LAB_SRC"
+}
 
 # 创建 staging pyproject.toml：逐行替换 lerobot Git 依赖，避免正则跨行匹配或换行差异导致替换失效。
-$PYPROJECT_LINES = Get-Content pyproject.toml -Encoding UTF8
+$STAGING_PYPROJECT = Join-Path $LAB_SRC "pyproject.toml"
+$STAGING_BACKUP = Join-Path $LAB_SRC "pyproject.toml.bak"
+$PYPROJECT_LINES = Get-Content -LiteralPath $STAGING_PYPROJECT -Encoding UTF8
 $LEROBOT_REPLACED = $false
 $PYPROJECT_LINES = $PYPROJECT_LINES | ForEach-Object {
     if (-not $LEROBOT_REPLACED -and $_ -match '^\s*"lerobot\[core_scripts,feetech,training\]\s*@\s*git\+') {
@@ -115,26 +120,28 @@ if (-not $LEROBOT_REPLACED) {
 }
 $PYPROJECT = $PYPROJECT_LINES -join "`n"
 # uv build 只读 pyproject.toml，必须临时替换
-Copy-Item pyproject.toml pyproject.toml.bak
-[System.IO.File]::WriteAllText("pyproject.toml", $PYPROJECT, (New-Object System.Text.UTF8Encoding($false)))
-if (-not (Select-String -Path pyproject.toml -SimpleMatch "lerobot[core_scripts,feetech,training]==$LEROBOT_VERSION" -Quiet)) {
-    throw "staging pyproject.toml 未写入锁定的 lerobot 版本"
-}
+Copy-Item -LiteralPath $STAGING_PYPROJECT -Destination $STAGING_BACKUP -Force
+[System.IO.File]::WriteAllText($STAGING_PYPROJECT, $PYPROJECT, (New-Object System.Text.UTF8Encoding($false)))
 
 # 用替换后的 pyproject.toml 构建
 $env:SETUPTOOLS_SCM_PRETEND_VERSION = $APP_VERSION
 $LELAB_WHEEL = $null
 try {
+    if (-not (Select-String -LiteralPath $STAGING_PYPROJECT -SimpleMatch "lerobot[core_scripts,feetech,training]==$LEROBOT_VERSION" -Quiet)) {
+        throw "staging pyproject.toml 未写入锁定的 lerobot 版本"
+    }
     # setuptools 会复用已有 egg-info 中的依赖元数据；必须清除它，
     # 否则 staging 的 lerobot 替换不会反映到最终 wheel 的 METADATA。
-    Remove-Item lelab_zh.egg-info -Recurse -Force -ErrorAction SilentlyContinue
-    Remove-Item build -Recurse -Force -ErrorAction SilentlyContinue
-    Remove-Item dist -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $LAB_SRC "lelab_zh.egg-info") -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $LAB_SRC "build") -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $LAB_SRC "dist") -Recurse -Force -ErrorAction SilentlyContinue
     uv build --wheel --no-cache
-    $LELAB_WHEEL = Get-ChildItem "dist\lelab_zh-$APP_VERSION-*.whl" | Select-Object -First 1
+    $LELAB_WHEEL = Get-ChildItem (Join-Path $LAB_SRC "dist\lelab_zh-$APP_VERSION-*.whl") | Select-Object -First 1
 } finally {
-    Copy-Item pyproject.toml.bak pyproject.toml -Force
-    Remove-Item pyproject.toml.bak -Force
+    if (Test-Path -LiteralPath $STAGING_BACKUP) {
+        Copy-Item -LiteralPath $STAGING_BACKUP -Destination $STAGING_PYPROJECT -Force
+        Remove-Item -LiteralPath $STAGING_BACKUP -Force
+    }
 }
 
 if (-not $LELAB_WHEEL) { throw "未生成 lelab-zh wheel" }
