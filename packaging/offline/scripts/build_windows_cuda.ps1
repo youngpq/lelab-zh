@@ -97,16 +97,21 @@ if ($LEROBOT_WHEEL_OVERRIDE -and (Test-Path $LEROBOT_WHEEL_OVERRIDE)) {
 Write-Host "[构建] 构建 lelab-zh wheel..." -ForegroundColor Yellow
 Push-Location $LAB_SRC
 
-# 创建 staging pyproject.toml：替换 lerobot git 依赖为版本锁定
-$PYPROJECT = Get-Content pyproject.toml -Raw -Encoding UTF8
-$PYPROJECT = [regex]::Replace(
-    $PYPROJECT,
-    '(?m)^(\s*)"lerobot\[core_scripts,feetech,training\].*",\s*$',
-    ('$1"lerobot[core_scripts,feetech,training]==' + $LEROBOT_VERSION + '",')
-)
-if ($PYPROJECT -notmatch [regex]::Escape("lerobot[core_scripts,feetech,training]==$LEROBOT_VERSION")) {
-    throw "未能将 lelab-zh 的 lerobot 依赖替换为本地 wheel 版本"
+# 创建 staging pyproject.toml：逐行替换 lerobot Git 依赖，避免正则跨行匹配或换行差异导致替换失效。
+$PYPROJECT_LINES = Get-Content pyproject.toml -Encoding UTF8
+$LEROBOT_REPLACED = $false
+$PYPROJECT_LINES = $PYPROJECT_LINES | ForEach-Object {
+    if (-not $LEROBOT_REPLACED -and $_ -match '^\s*"lerobot\[core_scripts,feetech,training\]\s*@\s*git\+') {
+        $LEROBOT_REPLACED = $true
+        '    "lerobot[core_scripts,feetech,training]==' + $LEROBOT_VERSION + '",'
+    } else {
+        $_
+    }
 }
+if (-not $LEROBOT_REPLACED) {
+    throw "未能将 lelab-zh 的 lerobot Git 依赖替换为本地 wheel 版本"
+}
+$PYPROJECT = $PYPROJECT_LINES -join "`n"
 # uv build 只读 pyproject.toml，必须临时替换
 Copy-Item pyproject.toml pyproject.toml.bak
 [System.IO.File]::WriteAllText("pyproject.toml", $PYPROJECT, (New-Object System.Text.UTF8Encoding($false)))
@@ -119,6 +124,7 @@ try {
     # 否则 staging 的 lerobot 替换不会反映到最终 wheel 的 METADATA。
     Remove-Item lelab_zh.egg-info -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item build -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item dist -Recurse -Force -ErrorAction SilentlyContinue
     uv build --wheel
     $LELAB_WHEEL = Get-ChildItem "dist\lelab_zh-$APP_VERSION-*.whl" | Select-Object -First 1
 } finally {
