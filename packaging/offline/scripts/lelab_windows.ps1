@@ -10,12 +10,14 @@ $ErrorActionPreference = "Continue"
 $PackageRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $LocationFile = Join-Path $env:LOCALAPPDATA "LeLab-zh-install-dir.txt"
 $DefaultInstallDir = Join-Path $env:LOCALAPPDATA "LeLab-zh"
+$script:LogFile = $null
 
 function Pause-ForUser {
     [void](Read-Host "按回车键继续")
 }
 
 function Fail([string]$Message) {
+    if ($script:LogFile) { Add-Content -LiteralPath $script:LogFile -Value "[错误] $Message" -Encoding UTF8 -ErrorAction SilentlyContinue }
     Write-Host "[错误] $Message" -ForegroundColor Red
     Pause-ForUser
     exit 1
@@ -35,6 +37,10 @@ function Get-Executable([string]$InstallDir) {
 
 function Assert-NativeSuccess([string]$FailureMessage) {
     if ($LASTEXITCODE -ne 0) { throw $FailureMessage }
+}
+
+function Write-InstallLog([string]$Message) {
+    if ($script:LogFile) { Add-Content -LiteralPath $script:LogFile -Value $Message -Encoding UTF8 -ErrorAction SilentlyContinue }
 }
 
 function Set-UvInstallEnvironment([string]$InstallDir) {
@@ -95,11 +101,68 @@ function Select-InstallDirectory {
 }
 
 function Assert-PackageComplete {
-    foreach ($name in @("wheels", "runtime", "uv", "requirements-offline.txt")) {
+    foreach ($name in @("wheels", "runtime", "uv", "prerequisites\VC_redist.x64.exe", "requirements-offline.txt")) {
         if (-not (Test-Path -LiteralPath (Join-Path $PackageRoot $name))) {
             Fail "安装文件不完整。请先将压缩包完整解压，再运行「一键安装」。"
         }
     }
+}
+
+function Test-VcRuntime {
+    $keys = @(
+        "HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64",
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\VisualStudio\14.0\VC\Runtimes\x64"
+    )
+    $missingDllCount = @("vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll") |
+        ForEach-Object { -not (Test-Path (Join-Path $env:WINDIR "System32\$_")) } |
+        Where-Object { $_ } |
+        Measure-Object | Select-Object -ExpandProperty Count
+    if ($missingDllCount -gt 0) { return $false }
+    foreach ($key in $keys) {
+        try {
+            $item = Get-ItemProperty -LiteralPath $key -ErrorAction Stop
+            if ($item.Installed -eq 1) { return $true }
+        } catch { }
+    }
+    return $false
+}
+
+function Ensure-VcRuntime([string]$InstallDir) {
+    if (Test-VcRuntime) {
+        Write-Host "[检查] Microsoft Visual C++ 运行库：已安装"
+        Write-InstallLog "VC++ runtime: present"
+        return
+    }
+
+    $redist = Join-Path $PackageRoot "prerequisites\VC_redist.x64.exe"
+    Write-Host "[安装] 未检测到 Microsoft Visual C++ 2015-2022 x64 运行库，正在请求管理员权限安装..."
+    Write-InstallLog "VC++ runtime: missing; launching $redist"
+    try {
+        $process = Start-Process -FilePath $redist -ArgumentList "/install /passive /norestart" -Verb RunAs -Wait -PassThru
+    } catch {
+        throw '无法启动 VC++ 运行库安装程序。请在 UAC 提示中选择“是”。'
+    }
+    Write-InstallLog "VC++ installer exit code: $($process.ExitCode)"
+    if ($process.ExitCode -eq 3010) {
+        throw 'VC++ 运行库已安装，但 Windows 要求重启。请重启后再次运行“一键安装”。'
+    }
+    if ($process.ExitCode -ne 0 -or -not (Test-VcRuntime)) {
+        throw "VC++ 运行库安装失败（退出码 $($process.ExitCode)）。请检查 UAC 或 Windows 安全软件拦截。"
+    }
+    Write-Host "[检查] Microsoft Visual C++ 运行库：安装完成"
+}
+
+function Test-LeLabImports([string]$Python, [string]$InstallDir) {
+    Write-Host "[检查] 正在验证 PyTorch 和 LeLab 导入..."
+    $torchOutput = (& $Python -c "import torch; print('torch=' + torch.__version__ + ' cuda=' + str(torch.version.cuda))" 2>&1 | Out-String).Trim()
+    $torchExit = $LASTEXITCODE
+    Write-InstallLog "Torch import exit=$torchExit`n$torchOutput"
+    if ($torchExit -ne 0) { throw "PyTorch 导入失败：$torchOutput" }
+
+    $appOutput = (& $Python -c "import lelab, lerobot; print('lelab/lerobot import: OK')" 2>&1 | Out-String).Trim()
+    $appExit = $LASTEXITCODE
+    Write-InstallLog "LeLab import exit=$appExit`n$appOutput"
+    if ($appExit -ne 0) { throw "LeLab/LeRobot 导入失败：$appOutput" }
 }
 
 function Test-PackageHashes {
@@ -129,6 +192,12 @@ function Install-LeLab {
     Write-Host "[检查] 安装目录：$installDir"
     Assert-PackageComplete
     Test-PackageHashes
+
+    New-Item -ItemType Directory -Force -Path (Join-Path $installDir "logs") | Out-Null
+    $script:LogFile = Join-Path $installDir "logs\install.log"
+    Write-InstallLog "Install started: $(Get-Date -Format o)"
+    Write-InstallLog "InstallDir=$installDir OS=$([Environment]::OSVersion.Version) Arch=$([Environment]::Is64BitOperatingSystem)"
+    Ensure-VcRuntime $installDir
 
     if (Get-Command "nvidia-smi" -ErrorAction SilentlyContinue) {
         Write-Host "[信息] 检测到 NVIDIA 显卡或驱动，将启用 CUDA 加速。"
@@ -164,6 +233,7 @@ function Install-LeLab {
     Write-Host "[安装] 正在从本地安装依赖（此过程可能需要几分钟）..."
     & $uv pip install --link-mode=copy --python (Join-Path $venv "Scripts\python.exe") --offline --no-index --find-links (Join-Path $installDir "wheels") --require-hashes -r (Join-Path $installDir "requirements-offline.txt")
     Assert-NativeSuccess "依赖安装失败。请检查安装包是否完整。"
+    Test-LeLabImports (Join-Path $venv "Scripts\python.exe") $installDir
     Clear-UvInstallEnvironment $installDir
 
     $desktop = [Environment]::GetFolderPath("Desktop")
@@ -177,6 +247,7 @@ function Install-LeLab {
 
     Set-Content -LiteralPath (Join-Path $installDir "version.txt") -Value "v0.1.0" -Encoding UTF8
     Set-Content -LiteralPath $LocationFile -Value $installDir -Encoding UTF8
+    Write-InstallLog "Install completed: $(Get-Date -Format o)"
     Write-Host ""
     Write-Host "============================================================"
     Write-Host "  LeLab-zh 已安装到电脑本地。"
@@ -206,6 +277,10 @@ function Stop-LeLab {
 function Repair-LeLab {
     $installDir = Get-InstallDirectory
     if (-not (Test-Path -LiteralPath (Join-Path $installDir "wheels"))) { Fail "本地修复文件不存在，请重新运行「一键安装」。" }
+    New-Item -ItemType Directory -Force -Path (Join-Path $installDir "logs") | Out-Null
+    $script:LogFile = Join-Path $installDir "logs\repair.log"
+    Write-InstallLog "Repair started: $(Get-Date -Format o)"
+    Ensure-VcRuntime $installDir
     $exe = Get-Executable $installDir
     if (Test-Path -LiteralPath $exe) { $null = & $exe --stop 2>&1 }
     $venv = Join-Path $installDir "venv"
@@ -221,9 +296,11 @@ function Repair-LeLab {
         Assert-NativeSuccess "创建虚拟环境失败。"
         & $uv pip install --link-mode=copy --python (Join-Path $venv "Scripts\python.exe") --offline --no-index --find-links (Join-Path $installDir "wheels") --require-hashes -r (Join-Path $installDir "requirements-offline.txt")
         Assert-NativeSuccess "依赖安装失败。"
+        Test-LeLabImports (Join-Path $venv "Scripts\python.exe") $installDir
         Clear-UvInstallEnvironment $installDir
         if (Test-Path -LiteralPath $backup) { Remove-Item -LiteralPath $backup -Recurse -Force }
         Write-Host "[完成] 修复安装完成。"
+        Write-InstallLog "Repair completed: $(Get-Date -Format o)"
     } catch {
         if (Test-Path -LiteralPath $venv) { Remove-Item -LiteralPath $venv -Recurse -Force }
         if ($hadVenv -and (Test-Path -LiteralPath $backup)) { Move-Item -LiteralPath $backup -Destination $venv }
