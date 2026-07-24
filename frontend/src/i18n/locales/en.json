@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "Robot Control",
+    "title": "具身智能实验室",
     "description": "LeRobot in your browser."
   },
   "language": {
@@ -115,11 +115,7 @@
     "showLoginInstructions": "Hugging Face not configured — show login instructions",
     "tokenInstructionsBefore": "Create a token at"
   },
-  "footer": {
-    "poweredBy": "Powered by",
-    "documentation": "Documentation"
-  },
-  "teleoperation": {
+    "teleoperation": {
     "title": "Teleoperation",
     "stopped": "Teleoperation stopped",
     "disconnected": "The arm was disconnected cleanly.",

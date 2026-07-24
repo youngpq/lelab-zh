@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "机器人控制",
+    "title": "具身智能实验室",
     "description": "在浏览器中使用 LeRobot。"
   },
   "language": {
@@ -115,11 +115,7 @@
     "showLoginInstructions": "Hugging Face 尚未配置 — 显示登录说明",
     "tokenInstructionsBefore": "请在以下地址创建 Token："
   },
-  "footer": {
-    "poweredBy": "技术支持：",
-    "documentation": "文档"
-  },
-  "teleoperation": {
+    "teleoperation": {
     "title": "遥操作（Teleoperation）",
     "stopped": "遥操作已停止",
     "disconnected": "机械臂已安全断开连接。",
