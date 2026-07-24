@@ -47,7 +47,9 @@ fi
 
 PATH_MARKER="# LeLab-zh PATH configuration"
 
-if [ -f "$SHELL_RC" ] && grep -q "$PATH_MARKER" "$SHELL_RC"; then
+if [ ! -f "$SHELL_RC" ]; then
+    echo "[信息] 配置文件不存在，无需移除"
+elif grep -q "$PATH_MARKER" "$SHELL_RC"; then
     # 使用 sed 移除标记和后续的 export 行
     sed -i.bak "/$PATH_MARKER/,/^export PATH=\".*\/venv\/bin/d" "$SHELL_RC"
     rm -f "${SHELL_RC}.bak"

@@ -232,12 +232,19 @@ PATH_MARKER="# LeLab-zh PATH configuration"
 if [ -f "$SHELL_RC" ] && grep -q "$PATH_MARKER" "$SHELL_RC"; then
     echo "[安装] PATH 已配置，跳过"
 else
+    # 确保配置文件存在（全新系统可能没有）
+    if [ ! -f "$SHELL_RC" ]; then
+        touch "$SHELL_RC"
+        echo "[安装] 已创建配置文件: $SHELL_RC"
+    fi
+
     # 追加到 shell 配置文件
     {
         echo ""
         echo "$PATH_MARKER"
         echo "export PATH=\"$VENV_BIN:\$PATH\""
     } >> "$SHELL_RC"
+
     echo "[安装] 已将 $VENV_BIN 添加到 PATH ($SHELL_RC)"
     echo "[提示] 新终端窗口生效，或在当前终端执行: source $SHELL_RC"
 fi
