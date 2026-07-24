@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Logo from "@/components/Logo";
 import { useApi } from "@/contexts/ApiContext";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -165,7 +164,6 @@ const Inference: React.FC = () => {
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <Logo />
         <h1 className="font-bold text-white text-2xl">{t("inference.title")}</h1>
       </div>
 

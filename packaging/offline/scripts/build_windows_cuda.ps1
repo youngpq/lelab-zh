@@ -87,6 +87,25 @@ if ($LEROBOT_WHEEL_OVERRIDE -and (Test-Path $LEROBOT_WHEEL_OVERRIDE)) {
 
     Write-Host "[构建] 构建 lerobot wheel..." -ForegroundColor Yellow
     Push-Location $LEROBOT_SRC
+
+    # Patch update_last_checkpoint 以在 symlink 失败时降级（不退出码 1）
+    Write-Host "[patch] 正在修补 lerobot 的 update_last_checkpoint..."
+    python -c "
+import pathlib
+p = pathlib.Path('lerobot/common/train_utils.py')
+s = p.read_text(encoding='utf-8')
+old = '    last_checkpoint_dir.symlink_to(relative_target)'
+new = ('    try:\n'
+       '        last_checkpoint_dir.symlink_to(relative_target)\n'
+       '    except (OSError, NotImplementedError) as e:\n'
+       '        import logging as _logging\n'
+       '        _logging.getLogger(__name__).warning(\n'
+       '            \"无法创建 last 符号链接（%s）；checkpoint 已保存于 %s。\", e, checkpoint_dir,\n'
+       '        )')
+assert s.count(old) == 1, '锚点未找到或多次匹配'
+p.write_text(s.replace(old, new), encoding='utf-8')
+print('[patch] update_last_checkpoint 已加 try-except 降级')
+"
     uv build --wheel
     $LEROBOT_WHEEL = Get-ChildItem dist\*.whl | Select-Object -First 1
     Copy-Item $LEROBOT_WHEEL.FullName $WHEELS_DIR
@@ -257,11 +276,11 @@ Remove-Item -Recurse -Force $VENV_DIR
 # 9. 复制安装脚本
 # ============================================================
 Write-Host "[构建] 复制安装脚本..." -ForegroundColor Yellow
-Copy-Item (Join-Path $SCRIPTS_SRC "install_windows.bat") (Join-Path $DIST_DIR "一键安装.bat")
-Copy-Item (Join-Path $SCRIPTS_SRC "start_windows.bat") (Join-Path $DIST_DIR "启动LeLab.bat")
-Copy-Item (Join-Path $SCRIPTS_SRC "stop_windows.bat") (Join-Path $DIST_DIR "停止LeLab.bat")
-Copy-Item (Join-Path $SCRIPTS_SRC "repair_windows.bat") (Join-Path $DIST_DIR "修复安装.bat")
-Copy-Item (Join-Path $SCRIPTS_SRC "uninstall_windows.bat") (Join-Path $DIST_DIR "卸载LeLab.bat")
+Copy-Item (Join-Path $SCRIPTS_SRC "install_windows.bat") (Join-Path $DIST_DIR "windows_install.bat")
+Copy-Item (Join-Path $SCRIPTS_SRC "start_windows.bat") (Join-Path $DIST_DIR "windows_start.bat")
+Copy-Item (Join-Path $SCRIPTS_SRC "stop_windows.bat") (Join-Path $DIST_DIR "windows_stop.bat")
+Copy-Item (Join-Path $SCRIPTS_SRC "repair_windows.bat") (Join-Path $DIST_DIR "windows_repair.bat")
+Copy-Item (Join-Path $SCRIPTS_SRC "uninstall_windows.bat") (Join-Path $DIST_DIR "windows_uninstall.bat")
 Copy-Item (Join-Path $SCRIPTS_SRC "lelab_windows.ps1") (Join-Path $DIST_DIR "lelab_windows.ps1")
 
 # 复制并验证 Microsoft Visual C++ 运行库。允许通过环境变量提供已下载的
@@ -279,6 +298,39 @@ if ($VC_SIGNATURE.Status -ne "Valid" -or $VC_SIGNATURE.SignerCertificate.Subject
 New-Item -ItemType Directory -Force -Path $PREREQ_DIR | Out-Null
 Copy-Item -LiteralPath $VC_REDIST -Destination (Join-Path $PREREQ_DIR "VC_redist.x64.exe") -Force
 Write-Host "[构建] VC++ 运行库已加入离线包" -ForegroundColor Green
+
+# ============================================================
+# 9.5. 复制 FFmpeg 共享 DLL（torchcodec 运行时依赖）
+# ============================================================
+Write-Host "[构建] 复制 FFmpeg 共享 DLL..." -ForegroundColor Yellow
+$FFMPEG_DLL_SRC = Join-Path $PROJECT_ROOT "ffmpeg-dlls"
+$FFMPEG_DLL_DIR = Join-Path $DIST_DIR "ffmpeg-dlls"
+if (-not (Test-Path -LiteralPath $FFMPEG_DLL_SRC)) {
+    throw "未找到 FFmpeg DLL 源目录: $FFMPEG_DLL_SRC。请将 8 个 FFmpeg 7.1 共享 DLL 放到该目录后重试。"
+}
+
+$FFMPEG_DLLS = @(
+    "avcodec-61.dll", "avformat-61.dll", "avutil-59.dll", "swresample-5.dll", "swscale-8.dll",
+    "avfilter-10.dll", "avdevice-61.dll", "postproc-58.dll"
+)
+
+New-Item -ItemType Directory -Force -Path $FFMPEG_DLL_DIR | Out-Null
+foreach ($DLL in $FFMPEG_DLLS) {
+    $SRC = Join-Path $FFMPEG_DLL_SRC $DLL
+    $DST = Join-Path $FFMPEG_DLL_DIR $DLL
+    if (-not (Test-Path -LiteralPath $SRC)) { throw "FFmpeg DLL 缺失: $SRC" }
+    Copy-Item -LiteralPath $SRC -Destination $DST -Force
+    Write-Host "[构建] 已复制 $DLL -> ffmpeg-dlls" -ForegroundColor Gray
+}
+
+# 验证所有 DLL 已经就位
+foreach ($DLL in $FFMPEG_DLLS) {
+    if (-not (Test-Path -LiteralPath (Join-Path $FFMPEG_DLL_DIR $DLL))) {
+        throw "FFmpeg DLL 复制后验证失败: $DLL"
+    }
+}
+
+Write-Host "[构建] FFmpeg 共享 DLL 已复制（8 个文件）" -ForegroundColor Green
 
 # ============================================================
 # 10. 生成 requirements-offline.txt（合并锁 + 本地 wheel hash）

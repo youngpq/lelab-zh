@@ -2,7 +2,6 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import Logo from '@/components/Logo';
 import { useTranslation } from "react-i18next";
 
 const TrainingHeader: React.FC = () => {
@@ -19,7 +18,6 @@ const TrainingHeader: React.FC = () => {
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <Logo />
         <h1 className="font-bold text-white text-2xl">{t("training.title")}</h1>
       </div>
     </div>

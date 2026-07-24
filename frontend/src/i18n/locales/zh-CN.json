@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "LeLab",
+    "title": "机器人控制",
     "description": "在浏览器中使用 LeRobot。"
   },
   "language": {
@@ -124,7 +124,7 @@
     "stopped": "遥操作已停止",
     "disconnected": "机械臂已安全断开连接。",
     "cameras": "摄像头",
-    "alreadyOpen": "LeLab 已在另一个标签页中打开",
+    "alreadyOpen": "应用已在另一个标签页中打开",
     "oneTabOnly": "同一时间只能有一个标签页控制机器人。请返回原标签页，或在此接管；另一个标签页将被锁定。",
     "useThisTab": "使用此标签页",
     "retryCameraFeeds": "重新尝试摄像头画面（例如重新连接摄像头后）",
@@ -364,7 +364,7 @@
     "extraDescriptionAfter": "软件包；当前环境中尚未安装它。安装后即可使用训练页面。",
     "restartIntro": "安装已完成。请重启",
     "restartToEnable": "以启用{{purpose}}：",
-    "restartStepOne": "在运行 LeLab 的终端中按下",
+    "restartStepOne": "在运行应用的终端中按下",
     "restartTerminal": "",
     "restartStepTwo": "再次运行",
     "restartAgain": "即可。",
@@ -561,14 +561,14 @@
     "disconnected": "未连接"
   },
   "usage": {
-    "title": "开始使用 LeLab",
-    "description": "LeLab 运行在你的本机。点击命令复制，然后粘贴到终端中执行：",
+    "title": "开始使用",
+    "description": "应用运行在你的本机。点击命令复制，然后粘贴到终端中执行：",
     "copyCommand": "复制命令到剪贴板",
-    "afterRunning": "执行后，浏览器会打开本地 LeLab 应用。",
-    "open": "打开 LeLab"
+    "afterRunning": "执行后，浏览器会打开本地应用。",
+    "open": "打开应用"
   },
   "update": {
-    "available": "发现 LeLab 更新",
+    "available": "发现更新",
     "newVersion": "有新版本可用",
     "commitsBehind_one": "落后 {{count}} 个提交",
     "commitsBehind_other": "落后 {{count}} 个提交",
@@ -580,7 +580,7 @@
     "copyManually": "请手动选择并复制命令。",
     "updated": "已更新",
     "updateFailed": "更新失败",
-    "dialogTitle": "LeLab 有可用更新",
+    "dialogTitle": "有可用更新",
     "behind": "当前落后 {{count}} 个提交 😱。",
     "availableDescription": "有新版本可用 😱。",
     "getLatest": "更新以获取最新修复和功能 🤗。",

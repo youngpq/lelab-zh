@@ -39,6 +39,40 @@ function Assert-NativeSuccess([string]$FailureMessage) {
     if ($LASTEXITCODE -ne 0) { throw $FailureMessage }
 }
 
+function Add-ToUserPath {
+    param([string[]]$PathsToAdd)
+    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    if ($null -eq $userPath) { $userPath = "" }
+    $existing = $userPath -split ';' | ForEach-Object { $_.TrimEnd('\') } | Where-Object { $_ -ne "" }
+    $changed = $false
+    foreach ($p in $PathsToAdd) {
+        $pNorm = $p.TrimEnd('\')
+        if ($p -and ($existing -notcontains $pNorm)) {
+            $userPath = if ($userPath -eq "") { $p } else { "$userPath;$p" }
+            $existing += $pNorm
+            $changed = $true
+            Write-Host "[环境] 已追加到用户 PATH: $p"
+        }
+    }
+    if ($changed) {
+        [Environment]::SetEnvironmentVariable("Path", $userPath, "User")
+        $env:Path = "$env:Path;$($PathsToAdd -join ';')"
+    }
+}
+
+function Remove-FromUserPath {
+    param([string]$PathToRemove)
+    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    if ($null -eq $userPath) { return }
+    $norm = $PathToRemove.TrimEnd('\')
+    $kept = $userPath -split ';' | ForEach-Object { $_.Trim().TrimEnd('\') } | Where-Object { $_ -ne "" -and $_ -ne $norm }
+    $newPath = ($kept -join ';')
+    if ($newPath -ne $userPath) {
+        [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+        Write-Host "[环境] 已从用户 PATH 移除: $PathToRemove"
+    }
+}
+
 function Write-InstallLog([string]$Message) {
     if ($script:LogFile) { Add-Content -LiteralPath $script:LogFile -Value $Message -Encoding UTF8 -ErrorAction SilentlyContinue }
 }
@@ -101,9 +135,9 @@ function Select-InstallDirectory {
 }
 
 function Assert-PackageComplete {
-    foreach ($name in @("wheels", "runtime", "uv", "prerequisites\VC_redist.x64.exe", "requirements-offline.txt")) {
+    foreach ($name in @("wheels", "runtime", "uv", "prerequisites\VC_redist.x64.exe", "requirements-offline.txt", "ffmpeg-dlls\avcodec-61.dll")) {
         if (-not (Test-Path -LiteralPath (Join-Path $PackageRoot $name))) {
-            Fail "安装文件不完整。请先将压缩包完整解压，再运行「一键安装」。"
+            Fail "安装文件不完整。请先将压缩包完整解压，再运行 windows_install.bat。"
         }
     }
 }
@@ -144,7 +178,7 @@ function Ensure-VcRuntime([string]$InstallDir) {
     }
     Write-InstallLog "VC++ installer exit code: $($process.ExitCode)"
     if ($process.ExitCode -eq 3010) {
-        throw 'VC++ 运行库已安装，但 Windows 要求重启。请重启后再次运行“一键安装”。'
+        throw 'VC++ 运行库已安装，但 Windows 要求重启。请重启后再次运行 windows_install.bat。'
     }
     if ($process.ExitCode -ne 0 -or -not (Test-VcRuntime)) {
         throw "VC++ 运行库安装失败（退出码 $($process.ExitCode)）。请检查 UAC 或 Windows 安全软件拦截。"
@@ -234,6 +268,13 @@ function Install-LeLab {
     & $uv pip install --link-mode=copy --python (Join-Path $venv "Scripts\python.exe") --offline --no-index --find-links (Join-Path $installDir "wheels") --require-hashes -r (Join-Path $installDir "requirements-offline.txt")
     Assert-NativeSuccess "依赖安装失败。请检查安装包是否完整。"
     Test-LeLabImports (Join-Path $venv "Scripts\python.exe") $installDir
+    # FFmpeg DLL 复制到 torchcodec 包目录（与 libtorchcodec_core*.dll 同级，Windows 依赖解析最高优先级）
+    $torchcodecDir = Join-Path $venv "Lib\site-packages\torchcodec"
+    if (-not (Test-Path -LiteralPath $torchcodecDir)) {
+        throw "torchcodec 包目录不存在: $torchcodecDir"
+    }
+    Copy-Item -LiteralPath (Join-Path $PackageRoot "ffmpeg-dlls\*") -Destination $torchcodecDir -Force
+    Write-Host "[安装] FFmpeg DLL 已复制到 torchcodec 目录"
     Clear-UvInstallEnvironment $installDir
 
     $desktop = [Environment]::GetFolderPath("Desktop")
@@ -252,13 +293,17 @@ function Install-LeLab {
     Write-Host "============================================================"
     Write-Host "  LeLab-zh 已安装到电脑本地。"
     Write-Host "============================================================"
+    # 将 PowerShell 目录和 lelab-zh venv Scripts 追加到用户 PATH（不覆盖）
+    $psDir = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0"
+    $venvScripts = Join-Path $venv "Scripts"
+    Add-ToUserPath -PathsToAdd @($psDir, $venvScripts)
     Write-Host "现在可以删除压缩包和解压文件夹，再从桌面的 Start LeLab 启动。"
     Pause-ForUser
 }
 
 function Start-LeLab {
     $exe = Get-Executable (Get-InstallDirectory)
-    if (-not (Test-Path -LiteralPath $exe)) { Fail "LeLab-zh 未安装或安装不完整。请先运行「一键安装」。" }
+    if (-not (Test-Path -LiteralPath $exe)) { Fail "LeLab-zh 未安装或安装不完整。请先运行 windows_install.bat。" }
     Write-Host "[启动] 正在启动 LeLab-zh..."
     Write-Host "[提示] 如果浏览器没有自动打开，请手动访问：http://127.0.0.1:8000"
     & $exe
@@ -276,7 +321,7 @@ function Stop-LeLab {
 
 function Repair-LeLab {
     $installDir = Get-InstallDirectory
-    if (-not (Test-Path -LiteralPath (Join-Path $installDir "wheels"))) { Fail "本地修复文件不存在，请重新运行「一键安装」。" }
+    if (-not (Test-Path -LiteralPath (Join-Path $installDir "wheels"))) { Fail "本地修复文件不存在，请重新运行 windows_install.bat。" }
     New-Item -ItemType Directory -Force -Path (Join-Path $installDir "logs") | Out-Null
     $script:LogFile = Join-Path $installDir "logs\repair.log"
     Write-InstallLog "Repair started: $(Get-Date -Format o)"
@@ -300,6 +345,10 @@ function Repair-LeLab {
         Clear-UvInstallEnvironment $installDir
         if (Test-Path -LiteralPath $backup) { Remove-Item -LiteralPath $backup -Recurse -Force }
         Write-Host "[完成] 修复安装完成。"
+        # 将 PowerShell 目录和 lelab-zh venv Scripts 追回用户 PATH（不覆盖）
+        $psDir = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0"
+        $venvScripts = Join-Path $venv "Scripts"
+        Add-ToUserPath -PathsToAdd @($psDir, $venvScripts)
         Write-InstallLog "Repair completed: $(Get-Date -Format o)"
     } catch {
         if (Test-Path -LiteralPath $venv) { Remove-Item -LiteralPath $venv -Recurse -Force }
@@ -327,6 +376,9 @@ function Uninstall-LeLab {
         }
     }
     Remove-Item -LiteralPath $LocationFile -Force -ErrorAction SilentlyContinue
+    # 从用户 PATH 移除 lelab-zh 路径（PowerShell 系统目录保留）
+    $venvScripts = Join-Path $installDir "venv\Scripts"
+    Remove-FromUserPath -PathToRemove $venvScripts
     Write-Host "[完成] LeLab-zh 已卸载。"
     Pause-ForUser
 }

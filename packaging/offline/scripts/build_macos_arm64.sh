@@ -91,6 +91,25 @@ else
 
     echo "[构建] 构建 lerobot wheel..."
     cd "$LEROBOT_SRC"
+
+    # Patch update_last_checkpoint 以在 symlink 失败时降级（不退出码 1）
+    echo "[patch] 正在修补 lerobot 的 update_last_checkpoint..."
+    python3 -c "
+import pathlib
+p = pathlib.Path('lerobot/common/train_utils.py')
+s = p.read_text(encoding='utf-8')
+old = '    last_checkpoint_dir.symlink_to(relative_target)'
+new = ('    try:\n'
+       '        last_checkpoint_dir.symlink_to(relative_target)\n'
+       '    except (OSError, NotImplementedError) as e:\n'
+       '        import logging as _logging\n'
+       '        _logging.getLogger(__name__).warning(\n'
+       '            \"无法创建 last 符号链接（%s）；checkpoint 已保存于 %s。\", e, checkpoint_dir,\n'
+       '        )')
+assert s.count(old) == 1, '锚点未找到或多次匹配'
+p.write_text(s.replace(old, new), encoding='utf-8')
+print('[patch] update_last_checkpoint 已加 try-except 降级')
+"
     uv build --wheel
     LEROBOT_WHEEL=$(find dist -maxdepth 1 -name 'lerobot-*.whl' -print -quit)
     [ -n "$LEROBOT_WHEEL" ] || { echo "[错误] 未生成 lerobot wheel"; exit 1; }
@@ -234,14 +253,51 @@ fi
 echo "[构建] wheels 文件名验证通过。"
 
 # ============================================================
+# 8.5. 下载并打包 FFmpeg 共享 dylib（torchcodec 运行时依赖）
+# ============================================================
+echo "[构建] 下载 FFmpeg 共享 dylib..."
+FFMPEG_URL="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-darwin-arm64-gpl-shared-7.1.tar.xz"
+FFMPEG_TAR="$BUILD_DIR/ffmpeg-shared.tar.xz"
+FFMPEG_EXTRACT="$BUILD_DIR/ffmpeg-extracted"
+FFMPEG_DYLIB_DIR="$DIST_DIR/ffmpeg-dylibs"
+
+if [ -n "${LELAB_FFMPEG_TAR:-}" ] && [ -f "$LELAB_FFMPEG_TAR" ]; then
+    cp "$LELAB_FFMPEG_TAR" "$FFMPEG_TAR"
+    echo "[构建] 使用本地 FFmpeg 压缩包: $LELAB_FFMPEG_TAR"
+else
+    curl -fL -o "$FFMPEG_TAR" "$FFMPEG_URL" || { echo "[错误] FFmpeg dylib 下载失败"; exit 1; }
+fi
+
+rm -rf "$FFMPEG_EXTRACT"
+mkdir -p "$FFMPEG_EXTRACT"
+tar -xf "$FFMPEG_TAR" -C "$FFMPEG_EXTRACT"
+# 解压后结构：ffmpeg-n7.1-latest-darwin-arm64-gpl-shared-7.1/lib/*.dylib
+FFMPEG_LIB=$(find "$FFMPEG_EXTRACT" -type d -name lib | head -n 1)
+[ -n "$FFMPEG_LIB" ] || { echo "[错误] FFmpeg 解压目录中未找到 lib 文件夹"; exit 1; }
+
+FFMPEG_DYLIBS=(
+    "libavcodec.61.dylib" "libavformat.61.dylib" "libavutil.59.dylib"
+    "libswresample.5.dylib" "libswscale.8.dylib"
+    "libavfilter.10.dylib" "libavdevice.61.dylib" "libpostproc.58.dylib"
+)
+mkdir -p "$FFMPEG_DYLIB_DIR"
+for DYLIB in "${FFMPEG_DYLIBS[@]}"; do
+    SRC="$FFMPEG_LIB/$DYLIB"
+    [ -f "$SRC" ] || { echo "[错误] FFmpeg dylib 缺失: $DYLIB"; exit 1; }
+    cp "$SRC" "$FFMPEG_DYLIB_DIR/"
+done
+rm -rf "$FFMPEG_EXTRACT" "$FFMPEG_TAR"
+echo "[构建] FFmpeg 共享 dylib 已加入离线包（8 个文件）"
+
+# ============================================================
 # 9. 复制安装脚本
 # ============================================================
 echo "[构建] 复制安装脚本..."
-cp "$SCRIPTS_SRC/install_macos.command" "$DIST_DIR/一键安装.command"
-cp "$SCRIPTS_SRC/start_macos.command" "$DIST_DIR/启动LeLab.command"
-cp "$SCRIPTS_SRC/stop_macos.command" "$DIST_DIR/停止LeLab.command"
-cp "$SCRIPTS_SRC/repair_macos.command" "$DIST_DIR/修复安装.command"
-cp "$SCRIPTS_SRC/uninstall_macos.command" "$DIST_DIR/卸载LeLab.command"
+cp "$SCRIPTS_SRC/install_macos.command" "$DIST_DIR/macos_install.command"
+cp "$SCRIPTS_SRC/start_macos.command" "$DIST_DIR/macos_start.command"
+cp "$SCRIPTS_SRC/stop_macos.command" "$DIST_DIR/macos_stop.command"
+cp "$SCRIPTS_SRC/repair_macos.command" "$DIST_DIR/macos_repair.command"
+cp "$SCRIPTS_SRC/uninstall_macos.command" "$DIST_DIR/macos_uninstall.command"
 chmod +x "$DIST_DIR"/*.command
 
 # ============================================================

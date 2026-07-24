@@ -20,7 +20,7 @@ import { useUpdateCheck } from "@/hooks/useUpdateCheck";
 import { useTranslation } from "react-i18next";
 
 /**
- * App-level popup that notifies the user when a newer LeLab is available on
+ * App-level popup that notifies the user when a newer version is available on
  * GitHub. Offers a copy-able upgrade command, a best-effort "Update now" button
  * (runs the pip upgrade on the backend), and a "don't ask again" opt-out.
  */

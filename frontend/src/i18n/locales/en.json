@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "LeLab",
+    "title": "Robot Control",
     "description": "LeRobot in your browser."
   },
   "language": {
@@ -124,7 +124,7 @@
     "stopped": "Teleoperation stopped",
     "disconnected": "The arm was disconnected cleanly.",
     "cameras": "Cameras",
-    "alreadyOpen": "LeLab is already open in another tab",
+    "alreadyOpen": "The app is already open in another tab",
     "oneTabOnly": "Only one tab can control the robot at a time. Switch back to the original tab, or take over here — the other tab will lock.",
     "useThisTab": "Use this tab",
     "retryCameraFeeds": "Retry camera feeds (e.g. after reconnecting a camera)",
@@ -561,14 +561,14 @@
     "disconnected": "Disconnected"
   },
   "usage": {
-    "title": "Get Started with LeLab",
-    "description": "LeLab runs on your machine. Click the command to copy it, then paste it in a terminal:",
+    "title": "Get Started",
+    "description": "The app runs on your machine. Click the command to copy it, then paste it in a terminal:",
     "copyCommand": "Copy command to clipboard",
-    "afterRunning": "After running, your browser will open the local LeLab app.",
-    "open": "Open LeLab"
+    "afterRunning": "After running, your browser will open the local app.",
+    "open": "Open app"
   },
   "update": {
-    "available": "LeLab update available",
+    "available": "Update available",
     "newVersion": "A new version is available",
     "commitsBehind_one": "{{count}} commit behind",
     "commitsBehind_other": "{{count}} commits behind",
@@ -580,7 +580,7 @@
     "copyManually": "Select and copy the command manually.",
     "updated": "Updated",
     "updateFailed": "Update failed",
-    "dialogTitle": "LeLab update available",
+    "dialogTitle": "Update available",
     "behind": "You're {{count}} commit behind 😱.",
     "availableDescription": "A new version is available 😱.",
     "getLatest": "Update to get the latest fixes and features 🤗.",

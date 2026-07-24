@@ -30,7 +30,6 @@ import {
   ShieldQuestion,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import Logo from "@/components/Logo";
 import PortDetectionButton from "@/components/ui/PortDetectionButton";
 import PortDetectionModal from "@/components/ui/PortDetectionModal";
 import { useApi } from "@/contexts/ApiContext";
@@ -540,8 +539,7 @@ const Calibration = () => {
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div className="flex items-center gap-3">
-            <Logo iconOnly />
+          <div className="flex items-center">
             <h1 className="text-3xl font-bold">
               {robotName
                 ? t("calibration.titleForRobot", { name: robotName })

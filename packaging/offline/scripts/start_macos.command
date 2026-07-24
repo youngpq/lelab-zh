@@ -21,4 +21,10 @@ echo "[启动] 正在启动 LeLab-zh..."
 echo "[提示] 如果浏览器没有自动打开，请手动访问：http://127.0.0.1:8000"
 echo ""
 
+# 设置 DYLD_LIBRARY_PATH 使 torchcodec 能找到 FFmpeg dylib
+FFMPEG_DYLIBS="$INSTALL_DIR/ffmpeg-dylibs"
+if [ -d "$FFMPEG_DYLIBS" ]; then
+    export DYLD_LIBRARY_PATH="$FFMPEG_DYLIBS:${DYLD_LIBRARY_PATH:-}"
+fi
+
 exec "$INSTALL_DIR/venv/bin/lelab-zh"

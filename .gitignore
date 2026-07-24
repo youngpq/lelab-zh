@@ -71,3 +71,6 @@ HTTPS_SETUP.md
 
 # Self-signed dev certs (regenerate per HTTPS_SETUP.md)
 certs/
+
+# FFmpeg DLLs (local build-only, not tracked in git)
+/ffmpeg-dlls/

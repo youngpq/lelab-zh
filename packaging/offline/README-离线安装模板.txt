@@ -21,21 +21,21 @@ macOS 版：
 
 1. 将压缩包复制到电脑本地（不要直接在压缩包内运行）
 2. 右键完整解压
-3. Windows 双击「一键安装」；macOS 按下面的首次运行方法操作
+3. Windows 双击 `windows_install.bat`；macOS 双击 `macos_install.command`
 4. 出现安装位置提示时，直接按回车使用默认位置；如 C 盘空间不足，可输入例如 D:\LeLab-zh
 5. 等待安装完成（首次安装可能需要几分钟）
 6. 双击桌面「启动LeLab」
 
 【macOS 首次运行方法】
 
-如果 macOS 双击「一键安装.command」提示无法打开，先进入已经解压好的安装文件夹：
+如果 macOS 双击 `macos_install.command` 提示无法打开，先进入已经解压好的安装文件夹：
 
 1. 在 Finder 中右键该文件夹，选择「服务 -> 新建位于文件夹位置的终端窗口」或「在终端中打开」；
 2. 在打开的终端中复制并执行下面三行：
 
    chmod +x ./*.command ./uv/uv ./runtime/bin/python3.12
    xattr -dr com.apple.quarantine .
-   ./一键安装.command
+   ./macos_install.command
 
 如果右键菜单没有「在终端中打开」，先打开“终端”应用，再把解压后的安装文件夹拖进终端窗口，按回车进入该目录，然后执行上面三行。
 
@@ -49,7 +49,7 @@ A: 请先将压缩包完整解压到本地文件夹，再运行安装脚本。
 
 Q: macOS 提示"无法验证开发者"或双击没有反应？
 A: 请先完整解压，再按本说明中的「macOS 首次运行方法」执行三行命令。
-   也可以在 Finder 中按住 Control 点击「一键安装.command」，选择「打开」，
+   也可以在 Finder 中按住 Control 点击 `macos_install.command`，选择「打开」，
    再在「系统设置 -> 隐私与安全性」中点击「仍要打开」。
 
 Q: Windows 提示"无法运行"？

@@ -85,7 +85,7 @@ fi
 # 4. 检查完整性
 # ============================================================
 MISSING=0
-for DIR in wheels runtime uv; do
+for DIR in wheels runtime uv ffmpeg-dylibs; do
     if [ ! -d "$PACKAGE_ROOT/$DIR" ]; then
         echo "[错误] 安装文件不完整。请先将压缩包完整解压，再运行「一键安装」。"
         echo "       禁止在压缩包预览界面直接双击此脚本。"
@@ -144,6 +144,7 @@ rm -rf "$INSTALL_DIR/venv"
 cp -R "$PACKAGE_ROOT/runtime" "$INSTALL_DIR/runtime"
 cp -R "$PACKAGE_ROOT/uv" "$INSTALL_DIR/uv"
 cp -R "$PACKAGE_ROOT/wheels" "$INSTALL_DIR/wheels"
+cp -R "$PACKAGE_ROOT/ffmpeg-dylibs" "$INSTALL_DIR/ffmpeg-dylibs"
 cp "$PACKAGE_ROOT/requirements-offline.txt" "$INSTALL_DIR/requirements-offline.txt"
 chmod +x "$INSTALL_DIR/uv/uv"
 chmod +x "$INSTALL_DIR/runtime/bin/python3.12"
