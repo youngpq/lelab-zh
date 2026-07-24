@@ -432,6 +432,14 @@ print(f"[构建] 已打包 FFmpeg 及其动态依赖: {len(copied)} 个 dylib")
 print("[构建] FFmpeg 核心 ABI: " + ", ".join(sorted(name for name in copied if name.startswith("libav"))))
 PY
 
+# 重新签名所有修改过的 dylib，避免 macOS AMFI 杀掉进程
+echo "[构建] 重新签名 FFmpeg dylib..."
+for dylib in "$FFMPEG_DYLIB_DIR"/*.dylib; do
+    if [ -f "$dylib" ]; then
+        codesign -fs - "$dylib"
+    fi
+done
+
 if [ -n "$FFMPEG_TEMP_DIR" ]; then
     rm -rf "$FFMPEG_TEMP_DIR"
 fi
