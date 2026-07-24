@@ -73,6 +73,28 @@ function Remove-FromUserPath {
     }
 }
 
+function Copy-FfmpegDlls {
+    param([string]$SourceDir, [string]$DestinationDir)
+    $FFMPEG_DLLS = @(
+        "avcodec-61.dll", "avformat-61.dll", "avutil-59.dll", "swresample-5.dll", "swscale-8.dll",
+        "avfilter-10.dll", "avdevice-61.dll", "postproc-58.dll"
+    )
+    if (-not (Test-Path -LiteralPath $DestinationDir)) {
+        throw "FFmpeg 目标目录不存在: $DestinationDir"
+    }
+    if (-not (Test-Path -LiteralPath $SourceDir)) {
+        throw "FFmpeg 源目录不存在: $SourceDir"
+    }
+    foreach ($DLL in $FFMPEG_DLLS) {
+        $SRC = Join-Path $SourceDir $DLL
+        if (-not (Test-Path -LiteralPath $SRC)) {
+            throw "FFmpeg DLL 缺失: $SRC（源目录: $SourceDir）"
+        }
+        Copy-Item -LiteralPath $SRC -Destination (Join-Path $DestinationDir $DLL) -Force
+    }
+    Write-Host "[安装] FFmpeg DLL 已复制到 $DestinationDir（8 个文件）" -ForegroundColor Green
+}
+
 function Write-InstallLog([string]$Message) {
     if ($script:LogFile) { Add-Content -LiteralPath $script:LogFile -Value $Message -Encoding UTF8 -ErrorAction SilentlyContinue }
 }
@@ -273,8 +295,11 @@ function Install-LeLab {
     if (-not (Test-Path -LiteralPath $torchcodecDir)) {
         throw "torchcodec 包目录不存在: $torchcodecDir"
     }
-    Copy-Item -LiteralPath (Join-Path $PackageRoot "ffmpeg-dlls\*") -Destination $torchcodecDir -Force
-    Write-Host "[安装] FFmpeg DLL 已复制到 torchcodec 目录"
+    Copy-FfmpegDlls -SourceDir (Join-Path $PackageRoot "ffmpeg-dlls") -DestinationDir $torchcodecDir
+    # 持久化 FFmpeg DLL 到安装目录，供 Repair 重建 venv 后重新复制
+    $installFfmpeg = Join-Path $installDir "ffmpeg-dlls"
+    New-Item -ItemType Directory -Force -Path $installFfmpeg | Out-Null
+    Copy-FfmpegDlls -SourceDir (Join-Path $PackageRoot "ffmpeg-dlls") -DestinationDir $installFfmpeg
     Clear-UvInstallEnvironment $installDir
 
     $desktop = [Environment]::GetFolderPath("Desktop")
@@ -342,6 +367,16 @@ function Repair-LeLab {
         & $uv pip install --link-mode=copy --python (Join-Path $venv "Scripts\python.exe") --offline --no-index --find-links (Join-Path $installDir "wheels") --require-hashes -r (Join-Path $installDir "requirements-offline.txt")
         Assert-NativeSuccess "依赖安装失败。"
         Test-LeLabImports (Join-Path $venv "Scripts\python.exe") $installDir
+        # Repair 重建了 venv，FFmpeg DLL 需从安装目录持久化副本重新复制到 torchcodec 目录
+        $torchcodecDir = Join-Path $venv "Lib\site-packages\torchcodec"
+        if (-not (Test-Path -LiteralPath $torchcodecDir)) {
+            throw "torchcodec 包目录不存在: $torchcodecDir"
+        }
+        $installFfmpeg = Join-Path $installDir "ffmpeg-dlls"
+        if (-not (Test-Path -LiteralPath $installFfmpeg)) {
+            throw "FFmpeg DLL 持久化目录不存在: $installFfmpeg。请用安装包重新安装（Repair 无法恢复 FFmpeg）。"
+        }
+        Copy-FfmpegDlls -SourceDir $installFfmpeg -DestinationDir $torchcodecDir
         Clear-UvInstallEnvironment $installDir
         if (Test-Path -LiteralPath $backup) { Remove-Item -LiteralPath $backup -Recurse -Force }
         Write-Host "[完成] 修复安装完成。"

@@ -9,9 +9,9 @@ set -euo pipefail
 # ============================================================
 VERSION="0.1.0"
 APP_VERSION="0.1.0.post1"
-TAG="v${VERSION}-zh.1"
+TAG="v${VERSION}-zh.2"
 LEROBOT_VERSION="0.6.0"
-LEROBOT_GIT="https://github.com/huggingface/lerobot.git"
+LEROBOT_GIT="${LELAB_LEROBOT_GIT:-https://gitee.com/yang-peiqiao/lerobot.git}"
 PYTHON_VERSION="3.12"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -94,9 +94,15 @@ else
 
     # Patch update_last_checkpoint 以在 symlink 失败时降级（不退出码 1）
     echo "[patch] 正在修补 lerobot 的 update_last_checkpoint..."
+    TRAIN_UTILS="src/lerobot/common/train_utils.py"
+    [ -f "$TRAIN_UTILS" ] || {
+        echo "[错误] 未找到 LeRobot 源文件: $LEROBOT_SRC/$TRAIN_UTILS"
+        echo "       请确认使用的是 LeRobot v$LEROBOT_VERSION 的 src 布局源码。"
+        exit 1
+    }
     python3 -c "
 import pathlib
-p = pathlib.Path('lerobot/common/train_utils.py')
+p = pathlib.Path('src/lerobot/common/train_utils.py')
 s = p.read_text(encoding='utf-8')
 old = '    last_checkpoint_dir.symlink_to(relative_target)'
 new = ('    try:\n'

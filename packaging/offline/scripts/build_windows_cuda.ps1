@@ -8,7 +8,7 @@ $ErrorActionPreference = "Stop"
 # ============================================================
 $VERSION = "0.1.0"
 $APP_VERSION = "0.1.0.post1"
-$TAG = "v$VERSION-zh.1"
+$TAG = "v$VERSION-zh.2"
 $LEROBOT_VERSION = "0.6.0"
 $LEROBOT_GIT = "https://github.com/huggingface/lerobot.git"
 $PYTORCH_CUDA_INDEX = "https://download.pytorch.org/whl/cu128"
@@ -38,6 +38,22 @@ Write-Host ""
 if (Test-Path $BUILD_DIR) { Remove-Item -Recurse -Force $BUILD_DIR }
 if (Test-Path $DIST_DIR) { Remove-Item -Recurse -Force $DIST_DIR }
 New-Item -ItemType Directory -Force -Path $WHEELS_DIR | Out-Null
+# 复用已有 wheel 缓存（避免重复下载 2.5GB）
+$WHEEL_SEED_ACTIVE = $false
+if ($env:LELAB_WHEEL_SEED) {
+    if (-not (Test-Path -LiteralPath $env:LELAB_WHEEL_SEED)) {
+        throw "LELAB_WHEEL_SEED 目录不存在: $env:LELAB_WHEEL_SEED"
+    }
+    $seedWheels = @(Get-ChildItem -LiteralPath $env:LELAB_WHEEL_SEED -Filter "*.whl" -File)
+    if ($seedWheels.Count -eq 0) {
+        throw "LELAB_WHEEL_SEED 中没有 wheel 文件: $env:LELAB_WHEEL_SEED"
+    }
+    foreach ($seedWheel in $seedWheels) {
+        Copy-Item -LiteralPath $seedWheel.FullName -Destination (Join-Path $WHEELS_DIR $seedWheel.Name) -Force
+    }
+    $WHEEL_SEED_ACTIVE = $true
+    Write-Host "[构建] 已预置 wheel 缓存: $env:LELAB_WHEEL_SEED（$($seedWheels.Count) 个 wheel）" -ForegroundColor Green
+}
 New-Item -ItemType Directory -Force -Path $BUILD_DIR | Out-Null
 
 # ============================================================
@@ -227,37 +243,40 @@ Get-ChildItem $RUNTIME_DIR -Force | Where-Object { $_.Attributes -band [System.I
 if (Test-Path (Join-Path $RUNTIME_DIR ".temp")) { Remove-Item (Join-Path $RUNTIME_DIR ".temp") -Recurse -Force }
 
 # ============================================================
-# 7. 下载所有依赖 wheel
+# 7. 准备所有依赖 wheel
 # ============================================================
-# uv 0.11+ 已移除 uv pip download，改用 pip download
-Write-Host "[构建] 下载第三方依赖 wheel..." -ForegroundColor Yellow
 $LOCK_FILE = Join-Path $LOCKS_DIR "windows-cuda.requirements.txt"
 $DOWNLOAD_LOCK = Join-Path $BUILD_DIR "windows-cuda.download.requirements.txt"
 
-# feetech-servo-sdk 仅发布 sdist，先在打包机上构建 wheel；最终清单使用构建后 hash。
+# feetech-servo-sdk 仅发布 sdist；没有 seed 时在打包机上构建 wheel。
 $LOCK_CONTENT = Get-Content $LOCK_FILE -Raw
 $LOCK_CONTENT = $LOCK_CONTENT -replace '(?ms)^feetech-servo-sdk==1\.0\.0.*?(?=^[A-Za-z0-9][A-Za-z0-9_.-]*==|\z)', ''
 [System.IO.File]::WriteAllText($DOWNLOAD_LOCK, $LOCK_CONTENT, (New-Object System.Text.UTF8Encoding($false)))
 
-# 在临时 venv 中使用 pip，避免修改受 PEP 668 保护的便携 Python。
-$DOWNLOAD_VENV = Join-Path $BUILD_DIR "download-venv"
-& "$UV_DIR\uv.exe" venv $DOWNLOAD_VENV --python $RUNTIME_PYTHON --seed
-if ($LASTEXITCODE -ne 0) { throw "下载环境创建失败" }
-$DOWNLOAD_PYTHON = Join-Path $DOWNLOAD_VENV "Scripts\python.exe"
+if ($WHEEL_SEED_ACTIVE) {
+    Write-Host "[构建] 使用预置 wheel 缓存，跳过第三方 wheel 下载。" -ForegroundColor Green
+} else {
+    Write-Host "[构建] 下载第三方依赖 wheel..." -ForegroundColor Yellow
+    # 在临时 venv 中使用 pip，避免修改受 PEP 668 保护的便携 Python。
+    $DOWNLOAD_VENV = Join-Path $BUILD_DIR "download-venv"
+    & "$UV_DIR\uv.exe" venv $DOWNLOAD_VENV --python $RUNTIME_PYTHON --seed
+    if ($LASTEXITCODE -ne 0) { throw "下载环境创建失败" }
+    $DOWNLOAD_PYTHON = Join-Path $DOWNLOAD_VENV "Scripts\python.exe"
 
-& $DOWNLOAD_PYTHON -m pip wheel "feetech-servo-sdk==1.0.0" --no-deps --wheel-dir $WHEELS_DIR --no-cache-dir
-if ($LASTEXITCODE -ne 0) { throw "feetech-servo-sdk wheel 构建失败" }
+    & $DOWNLOAD_PYTHON -m pip wheel "feetech-servo-sdk==1.0.0" --no-deps --wheel-dir $WHEELS_DIR --no-cache-dir
+    if ($LASTEXITCODE -ne 0) { throw "feetech-servo-sdk wheel 构建失败" }
 
-& $DOWNLOAD_PYTHON -m pip download `
-  --only-binary=:all: `
-  --require-hashes `
-  --find-links $WHEELS_DIR `
-  --extra-index-url $PYTORCH_CUDA_INDEX `
-  --requirement $DOWNLOAD_LOCK `
-  --dest $WHEELS_DIR `
-  --no-cache-dir
-if ($LASTEXITCODE -ne 0) { throw "第三方 wheel 下载失败" }
-Remove-Item $DOWNLOAD_VENV -Recurse -Force
+    & $DOWNLOAD_PYTHON -m pip download `
+      --only-binary=:all: `
+      --require-hashes `
+      --find-links $WHEELS_DIR `
+      --extra-index-url $PYTORCH_CUDA_INDEX `
+      --requirement $DOWNLOAD_LOCK `
+      --dest $WHEELS_DIR `
+      --no-cache-dir
+    if ($LASTEXITCODE -ne 0) { throw "第三方 wheel 下载失败" }
+    Remove-Item $DOWNLOAD_VENV -Recurse -Force
+}
 
 # ============================================================
 # 8. 验证 CUDA torch
