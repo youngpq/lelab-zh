@@ -201,6 +201,10 @@ cat > "$HOME/Applications/LeLab-zh.app/Contents/Info.plist" << PLIST
 PLIST
 cat > "$HOME/Applications/LeLab-zh.app/Contents/MacOS/launch" << LAUNCH
 #!/bin/bash
+FFMPEG_DYLIBS="$INSTALL_DIR/ffmpeg-dylibs"
+if [ -d "$FFMPEG_DYLIBS" ]; then
+    export DYLD_LIBRARY_PATH="$FFMPEG_DYLIBS:\${DYLD_LIBRARY_PATH:-}"
+fi
 exec "$INSTALL_DIR/venv/bin/lelab-zh"
 LAUNCH
 chmod +x "$HOME/Applications/LeLab-zh.app/Contents/MacOS/launch"

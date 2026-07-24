@@ -277,41 +277,159 @@ fi
 echo "[构建] wheels 文件名验证通过。"
 
 # ============================================================
-# 8.5. 下载并打包 FFmpeg 共享 dylib（torchcodec 运行时依赖）
+# 8.5. 获取并打包 FFmpeg 共享 dylib（torchcodec 运行时依赖）
 # ============================================================
-echo "[构建] 下载 FFmpeg 共享 dylib..."
-FFMPEG_URL="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-darwin-arm64-gpl-shared-7.1.tar.xz"
-FFMPEG_TAR="$BUILD_DIR/ffmpeg-shared.tar.xz"
-FFMPEG_EXTRACT="$BUILD_DIR/ffmpeg-extracted"
+echo "[构建] 获取 FFmpeg 共享 dylib..."
 FFMPEG_DYLIB_DIR="$DIST_DIR/ffmpeg-dylibs"
+mkdir -p "$FFMPEG_DYLIB_DIR"
+FFMPEG_SOURCE_DIR=""
+FFMPEG_TEMP_DIR=""
 
-if [ -n "${LELAB_FFMPEG_TAR:-}" ] && [ -f "$LELAB_FFMPEG_TAR" ]; then
-    cp "$LELAB_FFMPEG_TAR" "$FFMPEG_TAR"
+# 优先使用显式提供的本地资源；其次使用构建机 Homebrew。
+if [ -n "${LELAB_FFMPEG_DYLIB_DIR:-}" ] && [ -d "$LELAB_FFMPEG_DYLIB_DIR" ]; then
+    FFMPEG_SOURCE_DIR="$LELAB_FFMPEG_DYLIB_DIR"
+    echo "[构建] 使用本地 FFmpeg dylib 目录: $FFMPEG_SOURCE_DIR"
+elif [ -n "${LELAB_FFMPEG_TAR:-}" ] && [ -f "$LELAB_FFMPEG_TAR" ]; then
     echo "[构建] 使用本地 FFmpeg 压缩包: $LELAB_FFMPEG_TAR"
+    FFMPEG_TEMP_DIR=$(mktemp -d "$BUILD_DIR/ffmpeg-extract-XXXXXX")
+    tar -xf "$LELAB_FFMPEG_TAR" -C "$FFMPEG_TEMP_DIR"
+    FFMPEG_SOURCE_DIR=$(find "$FFMPEG_TEMP_DIR" -type d -name lib -print -quit)
+    [ -n "$FFMPEG_SOURCE_DIR" ] || { echo "[错误] 压缩包中未找到 lib 目录"; exit 1; }
+elif command -v brew >/dev/null 2>&1 && FFMPEG_PREFIX=$(brew --prefix ffmpeg 2>/dev/null); then
+    FFMPEG_SOURCE_DIR="$FFMPEG_PREFIX/lib"
+    HOMEBREW_PREFIX_VALUE="$(brew --prefix)"
+    echo "[构建] 使用 Homebrew FFmpeg: $FFMPEG_PREFIX"
 else
-    curl -fL -o "$FFMPEG_TAR" "$FFMPEG_URL" || { echo "[错误] FFmpeg dylib 下载失败"; exit 1; }
+    echo "[错误] 找不到 FFmpeg dylib。"
+    echo "       构建机请先执行 brew install ffmpeg，或设置 LELAB_FFMPEG_DYLIB_DIR / LELAB_FFMPEG_TAR。"
+    exit 1
 fi
 
-rm -rf "$FFMPEG_EXTRACT"
-mkdir -p "$FFMPEG_EXTRACT"
-tar -xf "$FFMPEG_TAR" -C "$FFMPEG_EXTRACT"
-# 解压后结构：ffmpeg-n7.1-latest-darwin-arm64-gpl-shared-7.1/lib/*.dylib
-FFMPEG_LIB=$(find "$FFMPEG_EXTRACT" -type d -name lib | head -n 1)
-[ -n "$FFMPEG_LIB" ] || { echo "[错误] FFmpeg 解压目录中未找到 lib 文件夹"; exit 1; }
+[ -d "$FFMPEG_SOURCE_DIR" ] || { echo "[错误] FFmpeg dylib 目录不存在: $FFMPEG_SOURCE_DIR"; exit 1; }
+HOMEBREW_PREFIX_VALUE="${HOMEBREW_PREFIX_VALUE:-${HOMEBREW_PREFIX:-}}"
 
-FFMPEG_DYLIBS=(
-    "libavcodec.61.dylib" "libavformat.61.dylib" "libavutil.59.dylib"
-    "libswresample.5.dylib" "libswscale.8.dylib"
-    "libavfilter.10.dylib" "libavdevice.61.dylib" "libpostproc.58.dylib"
+# 解析实际 ABI 版本、递归收集依赖，并把绝对 Homebrew 路径改成包内 @rpath。
+python3 - "$FFMPEG_SOURCE_DIR" "$FFMPEG_DYLIB_DIR" "$HOMEBREW_PREFIX_VALUE" <<'PY'
+import glob
+import os
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+source_dir = Path(sys.argv[1]).resolve()
+dest_dir = Path(sys.argv[2]).resolve()
+brew_prefix = Path(sys.argv[3]) if sys.argv[3] else None
+required_prefixes = (
+    "libavcodec", "libavformat", "libavutil", "libswresample",
+    "libswscale", "libavfilter", "libavdevice", "libpostproc",
 )
-mkdir -p "$FFMPEG_DYLIB_DIR"
-for DYLIB in "${FFMPEG_DYLIBS[@]}"; do
-    SRC="$FFMPEG_LIB/$DYLIB"
-    [ -f "$SRC" ] || { echo "[错误] FFmpeg dylib 缺失: $DYLIB"; exit 1; }
-    cp "$SRC" "$FFMPEG_DYLIB_DIR/"
-done
-rm -rf "$FFMPEG_EXTRACT" "$FFMPEG_TAR"
-echo "[构建] FFmpeg 共享 dylib 已加入离线包（8 个文件）"
+
+if shutil.which("otool") is None or shutil.which("install_name_tool") is None:
+    raise SystemExit("[错误] macOS 构建需要 otool 和 install_name_tool（请安装 Xcode Command Line Tools）。")
+
+def versioned_candidates(prefix, root):
+    paths = []
+    for path in root.glob(prefix + ".*.dylib"):
+        name = path.name
+        if re.match(rf"^{re.escape(prefix)}\.\d+\.dylib$", name):
+            paths.insert(0, path)
+        elif re.match(rf"^{re.escape(prefix)}\.\d+\..*\.dylib$", name):
+            paths.append(path)
+    return paths
+
+def choose_ffmpeg_library(prefix):
+    candidates = versioned_candidates(prefix, source_dir)
+    if not candidates:
+        raise SystemExit(f"[错误] FFmpeg 中缺少 {prefix} 的版本化 dylib: {source_dir}")
+    for candidate in candidates:
+        match = re.match(rf"^{re.escape(prefix)}\.(\d+)\.dylib$", candidate.name)
+        if match:
+            return candidate, candidate.name
+    candidate = sorted(candidates)[-1]
+    match = re.match(rf"^{re.escape(prefix)}\.(\d+)\..*\.dylib$", candidate.name)
+    if not match:
+        raise SystemExit(f"[错误] 无法解析 dylib ABI 版本: {candidate}")
+    return candidate, f"{prefix}.{match.group(1)}.dylib"
+
+search_roots = [source_dir]
+if brew_prefix:
+    search_roots.append(brew_prefix / "lib")
+    opt_dir = brew_prefix / "opt"
+    if opt_dir.is_dir():
+        search_roots.extend(path / "lib" for path in opt_dir.iterdir() if (path / "lib").is_dir())
+
+copied = {}
+copying = set()
+
+def dependencies(path):
+    output = subprocess.check_output(["otool", "-L", str(path)], text=True)
+    result = []
+    for line in output.splitlines()[1:]:
+        match = re.match(r"\s+(\S+)\s+\(", line)
+        if match:
+            result.append(match.group(1))
+    return result
+
+def resolve_dependency(name, current_path):
+    basename = Path(name).name
+    if name.startswith("@loader_path/"):
+        candidate = current_path.parent / name.removeprefix("@loader_path/")
+        if candidate.exists():
+            return candidate
+    if name.startswith("/"):
+        candidate = Path(name)
+        if candidate.exists():
+            return candidate
+    for root in search_roots:
+        candidate = root / basename
+        if candidate.exists():
+            return candidate
+    return None
+
+def is_system_dependency(name):
+    return name.startswith(("/System/", "/usr/lib/", "/usr/lib/system/"))
+
+def copy_library(source, destination_name):
+    destination = dest_dir / destination_name
+    if destination_name in copied:
+        return
+    if destination_name in copying:
+        return
+    copying.add(destination_name)
+    shutil.copy2(source, destination, follow_symlinks=True)
+    copied[destination_name] = source
+    changes = []
+    for dependency in dependencies(source):
+        if is_system_dependency(dependency):
+            continue
+        dependency_source = resolve_dependency(dependency, source)
+        if dependency_source is None:
+            raise SystemExit(
+                f"[错误] 无法找到 {destination_name} 的动态依赖: {dependency}\n"
+                "       请使用包含完整依赖的本地 FFmpeg 目录，或在构建机安装 Homebrew ffmpeg。"
+            )
+        dependency_name = Path(dependency).name
+        copy_library(dependency_source, dependency_name)
+        changes.append((dependency, f"@rpath/{dependency_name}"))
+    subprocess.run(["install_name_tool", "-id", f"@rpath/{destination_name}", str(destination)], check=True)
+    for old_name, new_name in changes:
+        subprocess.run(["install_name_tool", "-change", old_name, new_name, str(destination)], check=True)
+    copying.remove(destination_name)
+
+for prefix in required_prefixes:
+    source, destination_name = choose_ffmpeg_library(prefix)
+    copy_library(source, destination_name)
+
+print(f"[构建] 已打包 FFmpeg 及其动态依赖: {len(copied)} 个 dylib")
+print("[构建] FFmpeg 核心 ABI: " + ", ".join(sorted(name for name in copied if name.startswith("libav"))))
+PY
+
+if [ -n "$FFMPEG_TEMP_DIR" ]; then
+    rm -rf "$FFMPEG_TEMP_DIR"
+fi
+echo "[构建] FFmpeg 共享 dylib 已加入离线包"
 
 # ============================================================
 # 9. 复制安装脚本
@@ -356,7 +474,7 @@ FULL_VERIFY_VENV="$BUILD_DIR/full-verify-venv"
     --find-links "$WHEELS_DIR" \
     --require-hashes \
     --requirement "$REQ_FILE"
-"$FULL_VERIFY_VENV/bin/python" -c "import torch, lelab, lerobot; assert torch.version.cuda is None; print('full offline import check: OK')"
+DYLD_LIBRARY_PATH="$FFMPEG_DYLIB_DIR:${DYLD_LIBRARY_PATH:-}" "$FULL_VERIFY_VENV/bin/python" -c "import torch, torchcodec, lelab, lerobot; assert torch.version.cuda is None; print('full offline import check: OK')"
 rm -rf "$FULL_VERIFY_VENV"
 
 # README 必须在 SHA256 清单生成前复制
