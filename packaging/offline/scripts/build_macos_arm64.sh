@@ -419,6 +419,12 @@ def copy_library(source, destination_name):
     copying.remove(destination_name)
 
 for prefix in required_prefixes:
+    candidates = versioned_candidates(prefix, source_dir)
+    if not candidates:
+        if prefix == "libpostproc":
+            print(f"[构建] {prefix} 未找到（FFmpeg 8+ 已移除），已跳过")
+            continue
+        raise SystemExit(f"[错误] FFmpeg 中缺少 {prefix} 的版本化 dylib: {source_dir}")
     source, destination_name = choose_ffmpeg_library(prefix)
     copy_library(source, destination_name)
 
