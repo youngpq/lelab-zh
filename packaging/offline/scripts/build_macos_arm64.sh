@@ -44,6 +44,16 @@ fi
 rm -rf "$BUILD_DIR" "$DIST_DIR"
 mkdir -p "$WHEELS_DIR" "$BUILD_DIR"
 
+WHEEL_SEED_ACTIVE=0
+if [ -n "${LELAB_WHEEL_SEED:-}" ]; then
+    [ -d "$LELAB_WHEEL_SEED" ] || { echo "[错误] LELAB_WHEEL_SEED 目录不存在: $LELAB_WHEEL_SEED"; exit 1; }
+    SEED_WHEEL_COUNT=$(find "$LELAB_WHEEL_SEED" -maxdepth 1 -type f -name '*.whl' | wc -l | tr -d ' ')
+    [ "$SEED_WHEEL_COUNT" -gt 0 ] || { echo "[错误] LELAB_WHEEL_SEED 中没有 wheel 文件: $LELAB_WHEEL_SEED"; exit 1; }
+    cp "$LELAB_WHEEL_SEED"/*.whl "$WHEELS_DIR/"
+    WHEEL_SEED_ACTIVE=1
+    echo "[构建] 已预置 wheel 缓存: $LELAB_WHEEL_SEED（$SEED_WHEEL_COUNT 个 wheel）"
+fi
+
 # ============================================================
 # 2. Checkout LeLab-zh（含 LFS）
 # ============================================================
@@ -207,32 +217,40 @@ rm -rf "$RUNTIME_DIR/.temp"
 RUNTIME_PYTHON="$RUNTIME_DIR/bin/python3.12"
 
 # ============================================================
-# 7. 下载所有依赖 wheel
+# 7. 准备所有依赖 wheel
 # ============================================================
-# uv 0.11+ 已移除 uv pip download，改用 pip download
-echo "[构建] 下载第三方依赖 wheel..."
 LOCK_FILE="$LOCKS_DIR/macos-arm64.requirements.txt"
 DOWNLOAD_LOCK="$BUILD_DIR/macos-arm64.download.requirements.txt"
 
-# feetech-servo-sdk 仅发布 sdist，先在打包机上构建 wheel；最终清单使用构建后 hash。
+# feetech-servo-sdk 仅发布 sdist；没有 seed 时在打包机上构建 wheel。
 perl -0pe 's/^feetech-servo-sdk==1\.0\.0.*?(?=^[A-Za-z0-9][A-Za-z0-9_.-]*==|\z)//gms' "$LOCK_FILE" > "$DOWNLOAD_LOCK"
 
-DOWNLOAD_VENV="$BUILD_DIR/download-venv"
-"$UV_DIR/uv" venv "$DOWNLOAD_VENV" --python "$RUNTIME_PYTHON" --seed
-DOWNLOAD_PYTHON="$DOWNLOAD_VENV/bin/python"
-"$DOWNLOAD_PYTHON" -m pip wheel "feetech-servo-sdk==1.0.0" \
-    --no-deps \
-    --wheel-dir "$WHEELS_DIR" \
-    --no-cache-dir
+if [ "$WHEEL_SEED_ACTIVE" -eq 1 ]; then
+    echo "[构建] 使用预置 wheel 缓存，跳过第三方 wheel 下载。"
+else
+    echo "[构建] 下载第三方依赖 wheel..."
+    DOWNLOAD_VENV="$BUILD_DIR/download-venv"
+    "$UV_DIR/uv" venv "$DOWNLOAD_VENV" --python "$RUNTIME_PYTHON" --seed
+    DOWNLOAD_PYTHON="$DOWNLOAD_VENV/bin/python"
+    PYPI_INDEX_URL="${LELAB_PYPI_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}"
+    echo "[构建] PyPI 镜像: $PYPI_INDEX_URL"
 
-"$DOWNLOAD_PYTHON" -m pip download \
-    --only-binary=:all: \
-    --require-hashes \
-    --find-links "$WHEELS_DIR" \
-    --requirement "$DOWNLOAD_LOCK" \
-    --dest "$WHEELS_DIR" \
-    --no-cache-dir
-rm -rf "$DOWNLOAD_VENV"
+    "$DOWNLOAD_PYTHON" -m pip wheel "feetech-servo-sdk==1.0.0" \
+        --no-deps \
+        --index-url "$PYPI_INDEX_URL" \
+        --wheel-dir "$WHEELS_DIR" \
+        --no-cache-dir
+
+    "$DOWNLOAD_PYTHON" -m pip download \
+        --only-binary=:all: \
+        --require-hashes \
+        --index-url "$PYPI_INDEX_URL" \
+        --find-links "$WHEELS_DIR" \
+        --requirement "$DOWNLOAD_LOCK" \
+        --dest "$WHEELS_DIR" \
+        --no-cache-dir
+    rm -rf "$DOWNLOAD_VENV"
+fi
 
 # ============================================================
 # 8. 验证 macOS torch（无 CUDA，MPS 可用）
