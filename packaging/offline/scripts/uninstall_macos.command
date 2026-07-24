@@ -33,6 +33,29 @@ if [ -f "$INSTALL_DIR/venv/bin/lelab-zh" ]; then
     "$INSTALL_DIR/venv/bin/lelab-zh" --stop 2>/dev/null
 fi
 
+# 移除 PATH 配置
+echo "[卸载] 清理 PATH 配置..."
+
+# 检测当前 shell 类型
+if [ -n "$ZSH_VERSION" ] || [ "$SHELL" = "/bin/zsh" ]; then
+    SHELL_RC="$HOME/.zshrc"
+elif [ -n "$BASH_VERSION" ] || [ "$SHELL" = "/bin/bash" ]; then
+    SHELL_RC="$HOME/.bash_profile"
+else
+    SHELL_RC="$HOME/.profile"
+fi
+
+PATH_MARKER="# LeLab-zh PATH configuration"
+
+if [ -f "$SHELL_RC" ] && grep -q "$PATH_MARKER" "$SHELL_RC"; then
+    # 使用 sed 移除标记和后续的 export 行
+    sed -i.bak "/$PATH_MARKER/,/^export PATH=\".*\/venv\/bin/d" "$SHELL_RC"
+    rm -f "${SHELL_RC}.bak"
+    echo "[完成] PATH 配置已从 $SHELL_RC 移除"
+else
+    echo "[信息] PATH 配置不存在，无需移除"
+fi
+
 # 删除启动器
 echo "[卸载] 删除启动器..."
 rm -rf "$HOME/Applications/LeLab-zh.app"

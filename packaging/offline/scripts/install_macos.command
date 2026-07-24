@@ -212,13 +212,46 @@ ln -sfn "$HOME/Applications/LeLab-zh.app" "$HOME/Desktop/启动LeLab.app"
 echo "[安装] 启动器已创建: $HOME/Applications/LeLab-zh.app"
 
 # ============================================================
-# 11. 写版本信息
+# 11. 配置 PATH 环境变量
+# ============================================================
+echo "[安装] 正在配置命令行工具..."
+
+# 检测当前 shell 类型
+if [ -n "$ZSH_VERSION" ] || [ "$SHELL" = "/bin/zsh" ]; then
+    SHELL_RC="$HOME/.zshrc"
+elif [ -n "$BASH_VERSION" ] || [ "$SHELL" = "/bin/bash" ]; then
+    SHELL_RC="$HOME/.bash_profile"
+else
+    SHELL_RC="$HOME/.profile"
+fi
+
+VENV_BIN="$INSTALL_DIR/venv/bin"
+PATH_MARKER="# LeLab-zh PATH configuration"
+
+# 检查是否已配置
+if [ -f "$SHELL_RC" ] && grep -q "$PATH_MARKER" "$SHELL_RC"; then
+    echo "[安装] PATH 已配置，跳过"
+else
+    # 追加到 shell 配置文件
+    {
+        echo ""
+        echo "$PATH_MARKER"
+        echo "export PATH=\"$VENV_BIN:\$PATH\""
+    } >> "$SHELL_RC"
+    echo "[安装] 已将 $VENV_BIN 添加到 PATH ($SHELL_RC)"
+    echo "[提示] 新终端窗口生效，或在当前终端执行: source $SHELL_RC"
+fi
+
+echo ""
+
+# ============================================================
+# 12. 写版本信息
 # ============================================================
 echo "v0.1.0" > "$INSTALL_DIR/version.txt"
 printf '%s\n' "$INSTALL_DIR" > "$LOCATION_FILE"
 
 # ============================================================
-# 12. 完成提示
+# 13. 完成提示
 # ============================================================
 echo ""
 echo "============================================================"
@@ -227,8 +260,9 @@ echo "============================================================"
 echo ""
 echo "  现在可以："
 echo "  1. 双击桌面的「启动LeLab」或从启动台打开 LeLab-zh；"
-echo "  2. 删除下载的压缩包；"
-echo "  3. 删除本次解压出的安装文件夹。"
+echo "  2. 在终端直接运行: lelab-zh 或 hf auth login"
+echo "  3. 删除下载的压缩包；"
+echo "  4. 删除本次解压出的安装文件夹。"
 echo ""
 echo "  删除安装包不会影响已经安装的 LeLab-zh。"
 echo "============================================================"
