@@ -51,7 +51,7 @@ if [ -n "${LELAB_WHEEL_SEED:-}" ]; then
     [ "$SEED_WHEEL_COUNT" -gt 0 ] || { echo "[错误] LELAB_WHEEL_SEED 中没有 wheel 文件: $LELAB_WHEEL_SEED"; exit 1; }
     cp "$LELAB_WHEEL_SEED"/*.whl "$WHEELS_DIR/"
     WHEEL_SEED_ACTIVE=1
-    echo "[构建] 已预置 wheel 缓存: $LELAB_WHEEL_SEED（$SEED_WHEEL_COUNT 个 wheel）"
+    echo "[构建] 已预置 wheel 缓存: ${LELAB_WHEEL_SEED}（${SEED_WHEEL_COUNT} 个 wheel）"
 fi
 
 # ============================================================
