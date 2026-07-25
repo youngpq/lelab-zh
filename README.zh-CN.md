@@ -108,22 +108,25 @@ $env:UV_CONCURRENT_DOWNLOADS = "4"
 
 ### 4. 安装 lelab-zh
 
+**从 GitHub 安装（默认）：**
+
 ```bash
 uv tool install --python 3.12 \
-  git+https://github.com/youngpq/lelab-zh.git@v0.1.0-zh.1
+  git+https://github.com/youngpq/lelab-zh.git
+```
+
+**国内用户（Gitee 镜像）：**
+
+```bash
+uv tool install --python 3.12 \
+  git+https://gitee.com/yang-peiqiao/lelab-zh.git
 ```
 
 安装或覆盖同一版本：
 
 ```bash
 uv tool install --force --reinstall --refresh --python 3.12 \
-  git+https://github.com/youngpq/lelab-zh.git@v0.1.0-zh.1
-```
-
-首次安装需要网络连接以下载 Python、PyTorch、LeRobot 和相关依赖。若 `lelab-zh` 不在 PATH：
-
-```bash
-uv tool update-shell
+  git+https://github.com/youngpq/lelab-zh.git
 ```
 
 ### 5. 运行
@@ -133,6 +136,22 @@ lelab-zh
 ```
 
 浏览器会自动打开 LeLab 界面。未自动打开时手动访问 <http://127.0.0.1:8000>。
+
+### 常见问题
+
+**clone 后缺少 pyproject.toml**
+
+如果 clone 后目录里没有 `pyproject.toml` 或 `lelab/`，说明 clone 不完整。重新 clone：
+```bash
+rm -rf lelab-zh
+git clone https://gitee.com/yang-peiqiao/lelab-zh.git
+ls lelab-zh/pyproject.toml  # 确认存在
+```
+
+如果反复失败，跳过 clone 直接安装：
+```bash
+uv tool install --python 3.12 git+https://gitee.com/yang-peiqiao/lelab-zh.git
+```
 
 > **macOS 提示**：如果弹出「无法验证开发者」，去「系统设置 → 隐私与安全性」中点击「仍要打开」。使用机器人硬件时串口路径为 `/dev/cu.usb*` 而非 `/dev/ttyUSB*`。
 
